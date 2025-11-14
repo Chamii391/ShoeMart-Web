@@ -1,53 +1,57 @@
 🛍️ ShoeMart-Web
 
-ShoeMart-Web is a full-stack web application designed for an online shoe retail store.
-The system includes a modern frontend, secure backend, and an AI-powered microservice to support smart features such as product recommendations and a chatbot.
+ShoeMart-Web is a full-stack intelligent shoe retail platform built with a modern frontend, a secure backend, and an AI-powered microservice.
+It provides smart features such as product recommendations, chatbot support, and a smooth online shopping experience.
 
 📌 Project Summary
 
-This project integrates multiple technologies to deliver a complete e-commerce experience for customers and administrators.
-It supports browsing shoes, managing products, handling cart and orders, and offering AI assistance through recommendations and a generative chatbot.
+This project brings together multiple technologies to deliver a complete e-commerce solution for customers and administrators.
+It enables:
+
+👟 Browsing and filtering shoes
+
+🛒 Adding products to cart
+
+🔐 User login and registration
+
+🛍️ Managing products and categories
+
+🤖 AI-generated recommendations
+
+💬 Generative AI chatbot for instant support
+
+
 
 🧩 Key Features
 
-React Frontend
+🛍️ Modern online shoe shopping experience
 
-Clean and user-friendly interface
+🔍 Product browsing, searching, and filtering
 
-Product browsing and filtering
+👟 View detailed shoe information with images
 
-Add-to-cart system
+🛒 Add-to-cart and cart management system
 
-User login and registration
+🧾 Order processing and checkout flow
 
-Integrated chatbot panel
+🔐 User login and registration with authentication
 
-Display of AI-generated recommendations
+👤 Customer profile handling
 
-Node.js Backend
+🛠️ Admin product & category management
 
-REST API for frontend
+🧠 AI-powered product recommendations (Trending items)
 
-User authentication
+🤖 Generative AI chatbot for customer support
 
-Product and category management
+🔗 Smooth integration between UI, API, and AI modules
 
-Cart and order management
+🗄️ MySQL-based centralized data storage
 
-Communicates with Flask AI service
+📊 Logs user actions (views, add-to-cart, purchase)
 
-Flask AI Microservice
+⚡ Fast REST API structure for all operations
 
-Global popularity-based recommendation model
+🧱 Modular architecture with separate services
 
-Generative AI chatbot for customer assistance
-
-Model loading and prediction endpoints
-
-Lightweight and easily scalable
-
-MySQL Database
-
-Stores users, products, orders, and activity logs
-
-Shared between backend and AI training notebooks
+🚀 Scalable design suitable for future growth
