@@ -1,6 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { connectDB } from "./db.js";
+import userRouter from "./routers/userRouter.js";
 
 
 const app = express();
@@ -14,6 +15,7 @@ connectDB();
 
 
 
+app.use("/api/users",userRouter)
 
 
 app.listen(3000, () => {
