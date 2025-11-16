@@ -1,12 +1,15 @@
 import express from "express";
 import bodyParser from "body-parser";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 import { connectDB } from "./db.js";
 import userRouter from "./routers/userRouter.js";
 
 
 const app = express();
 
+
+app.use(cors());
 app.use(bodyParser.json());
 
 app.use((req, res, next) => {

@@ -4,7 +4,10 @@ import Home from './pages/home';
 import Products from './pages/products';
 import About from './pages/about';
 import Contact from './pages/contact';
-import Header from './components/header';
+
+import Login from './auth/loging';
+import { Toaster } from 'react-hot-toast';
+import Register from './auth/rejister';
 
 
 
@@ -13,15 +16,23 @@ function App() {
 
   return (
     <>
+    
       <Router>
-        <Header />
+
+        <Toaster position='top-center'/>
+        
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+           <Route path="/login" element={<Login  />} />
+            <Route path="/register" element={<Register  />} />
         </Routes>
       </Router>
+
+
+     
     </>
   )
 }

@@ -3,32 +3,44 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
 
-export async function Createuser(req,res){
-    
-    try{
+export async function Createuser(req, res) {
+  try {
+    const { firstname, lastname, username, password, role } = req.body;
 
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-        const sql = "INSERT INTO users (firstname, lastname, username, password, role) VALUES (?, ?, ?, ?, ?)";
-
-        await pool.query(sql,[
-            req.body.firstname,
-            req.body.lastname,
-            req.body.username,
-            hashedPassword,
-            req.body.role
-        ])
-
-        res.status(201).json({message:"User created successfully"})
-     
-    }catch(error){
-        console.error(error);
-        res.status(500).json({
-            message:"Error creating user",
-            error:error.message
-        })
+    // Basic validation
+    if (!firstname || !lastname || !username || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert query
+    const sql = `
+      INSERT INTO users (firstname, lastname, username, password, role, isActive)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    await pool.query(sql, [
+      firstname,
+      lastname,
+      username,
+      hashedPassword,
+      role || "customer",     // default role
+      "active"                // default active status
+    ]);
+
+    res.status(201).json({ message: "User created successfully" });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error creating user",
+      error: error.message
+    });
+  }
+}
+
 
 
 
