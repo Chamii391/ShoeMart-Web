@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, ShoppingBag } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -8,6 +8,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const navigate = useNavigate();
 
   async function handleLogin(e) {
     e.preventDefault(); // Prevent reload
@@ -20,6 +22,13 @@ export default function Login() {
 
       toast.success("Login successful!");
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem("userRole", response.data.role); 
+      console.log(response.data.role)
+
+      if(response.data.role == "admin"){
+        navigate("/admin-page")
+      }
+      
 
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong");
