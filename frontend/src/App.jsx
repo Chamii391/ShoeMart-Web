@@ -8,6 +8,7 @@ import Contact from './pages/contact';
 import Login from './auth/loging';
 import { Toaster } from 'react-hot-toast';
 import Register from './auth/rejister';
+import AdminPage from './admin/adminpage';
 
 
 
@@ -26,8 +27,11 @@ function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
-           <Route path="/login" element={<Login  />} />
-            <Route path="/register" element={<Register  />} />
+          <Route path="/login" element={<Login  />} />
+          <Route path="/register" element={<Register  />} />
+          <Route path="/admin-page/*" element={<AdminPage />} />
+
+          
         </Routes>
       </Router>
 
