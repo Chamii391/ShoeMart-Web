@@ -28,6 +28,9 @@ export default function Login() {
       if(response.data.role == "admin"){
         navigate("/admin-page")
       }
+      else if(response.data.role == "customer"){
+        navigate("/client-page")
+      }
       
 
     } catch (error) {

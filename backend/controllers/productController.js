@@ -447,3 +447,84 @@ export async function Delete_Product(req, res) {
 
 
 
+export async function View_Product_ById(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Product ID is required" });
+    }
+
+    const sql = `
+      SELECT
+        p.product_id,
+        p.name,
+        p.altNames,
+        p.description,
+        p.main_category,
+        p.price,
+        p.color,
+        p.country,
+        p.images,
+        p.isActive,
+        p.created_at,
+        ps.size_id,
+        ps.size_value,
+        ps.stock
+      FROM products p
+      LEFT JOIN product_sizes ps
+        ON p.product_id = ps.product_id
+      WHERE p.product_id = ? AND p.isActive = 'active'
+    `;
+
+    const [rows] = await pool.query(sql, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Build product object
+    const first = rows[0];
+
+    // Parse images from JSON
+    let images = [];
+    try {
+      images = JSON.parse(first.images);
+    } catch {
+      images = [];
+    }
+
+    const product = {
+      product_id: first.product_id,
+      name: first.name,
+      altNames: first.altNames,
+      description: first.description,
+      main_category: first.main_category,
+      price: first.price,
+      color: first.color,
+      country: first.country,
+      images,
+      isActive: first.isActive,
+      created_at: first.created_at,
+      sizes: []
+    };
+
+    // Add sizes
+    for (const row of rows) {
+      if (row.size_value) {
+        product.sizes.push({
+          size_value: row.size_value,
+          stock: row.stock
+        });
+      }
+    }
+
+    return res.status(200).json(product);
+
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return res.status(500).json({
+      message: "Error fetching product"
+    });
+  }
+}
