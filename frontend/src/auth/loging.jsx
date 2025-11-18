@@ -33,6 +33,9 @@ export default function Login() {
       else if(response.data.role == "customer"){
         navigate("/client-page")
       }
+      else if(response.data.role == "delivery"){
+        navigate("/deliver-page")
+      }
       
 
     } catch (error) {

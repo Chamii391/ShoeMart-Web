@@ -13,6 +13,7 @@ import ProductOverview from './pages/productOverview';
 import CartPage from './pages/cartPage';
 import ClientPage from './clients/clientPage';
 import Checkout from './pages/checkout';
+import DeliveryPage from './delivery/deliverypage';
 
 
 
@@ -42,6 +43,7 @@ function App() {
 
 
          <Route path="/client-page/*" element={<ClientPage />} />
+           <Route path="/deliver-page/*" element={<DeliveryPage />} />
           
         </Routes>
       </Router>
