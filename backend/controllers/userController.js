@@ -92,3 +92,28 @@ export async function login(req,res){
     }
 }
 
+export async function isAdmin(userId) {
+  const [rows] = await db.query(
+    "SELECT role FROM users WHERE userid = ? AND isActive = 'active'",
+    [userId]
+  );
+
+  if (rows.length === 0) {
+    return false; // user not found or not active
+  }
+
+  return rows[0].role === "admin";
+}
+
+export async function isCustomer(userId) {
+  const [rows] = await pool.query(
+    "SELECT role FROM users WHERE userid = ? AND isActive = 'active'",
+    [userId]
+  );
+
+  if (rows.length === 0) {
+    return false;
+  }
+
+  return rows[0].role === "customer";
+}

@@ -5,6 +5,8 @@ import cors from "cors";
 import { connectDB } from "./db.js";
 import userRouter from "./routers/userRouter.js";
 import productRouter from "./routers/productRouter.js";
+import orderRouter from "./routers/orderRouter.js";
+
 
 
 const app = express();
@@ -41,6 +43,7 @@ app.use((req, res, next) => {
 
 app.use("/api/users",userRouter)
 app.use("/api/products",productRouter)
+app.use("/api/orders",orderRouter)
 
 connectDB();
 

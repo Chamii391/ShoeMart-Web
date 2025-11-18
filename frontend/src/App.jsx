@@ -12,6 +12,7 @@ import AdminPage from './admin/adminpage';
 import ProductOverview from './pages/productOverview';
 import CartPage from './pages/cartPage';
 import ClientPage from './clients/clientPage';
+import Checkout from './pages/checkout';
 
 
 
@@ -36,6 +37,8 @@ function App() {
           <Route path="/admin-page/*" element={<AdminPage />} />
           <Route path="/overview/:id" element={<ProductOverview />} /> 
           <Route path="/cart" element={<CartPage/>} /> 
+          <Route path="/checout" element={<Checkout/>} /> 
+
 
 
          <Route path="/client-page/*" element={<ClientPage />} />

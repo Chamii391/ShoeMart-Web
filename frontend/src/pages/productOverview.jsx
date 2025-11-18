@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { ShoppingCart, Bolt } from "lucide-react";
@@ -7,6 +7,7 @@ import { addToCart } from "../utils/cart";
 
 export default function ProductOverview() {
     const { id } = useParams();
+    const navigate = useNavigate();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -35,13 +36,13 @@ export default function ProductOverview() {
         loadProduct();
     }, [id]);
 
-    // Select size
+    // Size select
     function handleSizeSelect(sizeObj) {
         setSelectedSize(sizeObj);
         setQuantity(1);
     }
 
-    // Quantity increase
+    // Increase quantity
     function increaseQty() {
         if (!selectedSize) return toast.error("Select a size first");
 
@@ -52,16 +53,15 @@ export default function ProductOverview() {
         }
     }
 
-    // Quantity decrease
+    // Decrease quantity
     function decreaseQty() {
         if (quantity > 1) setQuantity(quantity - 1);
     }
 
     // ---- ADD TO CART ----
     function handleAddToCart() {
-        if (!selectedSize) {
+        if (!selectedSize)
             return toast.error("Please select a size first");
-        }
 
         try {
             addToCart(product, selectedSize, quantity);
@@ -69,6 +69,25 @@ export default function ProductOverview() {
         } catch (error) {
             toast.error(error.message);
         }
+    }
+
+    // ---- BUY NOW ----
+    function handleBuyNow() {
+        if (!selectedSize)
+            return toast.error("Please select a size first");
+
+        navigate("/checout", {
+            state: {
+                buyNow: {
+                    product_id: product.product_id,
+                    name: product.name,
+                    size: selectedSize.size_value,
+                    qty: quantity,
+                    price: product.price,
+                    image: product.images[0]
+                }
+            }
+        });
     }
 
     if (loading) {
@@ -97,6 +116,7 @@ export default function ProductOverview() {
                         <img
                             src={selectedImage}
                             className="w-full h-full object-cover"
+                            alt=""
                         />
                     </div>
 
@@ -134,18 +154,24 @@ export default function ProductOverview() {
                                     disabled={s.stock === 0}
                                     onClick={() => handleSizeSelect(s)}
                                     className={`px-4 py-2 rounded-lg border font-semibold transition
-                                        ${selectedSize?.size_value === s.size_value
-                                            ? "bg-red-600 text-white border-red-700"
-                                            : "bg-white text-black border-gray-400"
+                                        ${
+                                            selectedSize?.size_value === s.size_value
+                                                ? "bg-red-600 text-white border-red-700"
+                                                : "bg-white text-black border-gray-400"
                                         }
-                                        ${s.stock === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-red-100"}
+                                        ${
+                                            s.stock === 0
+                                                ? "opacity-40 cursor-not-allowed"
+                                                : "hover:bg-red-100"
+                                        }
                                     `}
                                 >
                                     Size {s.size_value}
-
                                     <span
                                         className={`block text-xs mt-1 ${
-                                            s.stock === 0 ? "text-red-500" : "text-green-600"
+                                            s.stock === 0
+                                                ? "text-red-500"
+                                                : "text-green-600"
                                         }`}
                                     >
                                         {s.stock === 0 ? "Out of Stock" : "In Stock"}
@@ -182,7 +208,7 @@ export default function ProductOverview() {
                         )}
                     </div>
 
-                    {/* BUTTONS */}
+                    {/* ACTION BUTTONS */}
                     <div className="mt-8 flex gap-4">
                         <button
                             onClick={handleAddToCart}
@@ -193,6 +219,7 @@ export default function ProductOverview() {
                         </button>
 
                         <button
+                            onClick={handleBuyNow}
                             className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-900"
                         >
                             <Bolt size={20} />
