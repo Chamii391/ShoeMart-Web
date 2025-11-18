@@ -528,3 +528,28 @@ export async function View_Product_ById(req, res) {
     });
   }
 }
+
+
+// Increase product views (no login required)
+export async function Increase_Product_Views(req, res) {
+  try {
+    
+   const { id } = req.params;  // ✅ CORRECT
+
+
+    if (!id) {
+      return res.status(400).json({ message: "product_id is required" });
+    }
+
+    await pool.query(
+      "UPDATE products SET views = views + 1 WHERE product_id = ?",
+      [id]
+    );
+
+    return res.status(200).json({ message: "View counted" });
+
+  } catch (error) {
+    console.error("Error updating views:", error);
+    return res.status(500).json({ message: "Error", error: error.message });
+  }
+}

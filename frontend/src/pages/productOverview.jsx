@@ -21,7 +21,7 @@ export default function ProductOverview() {
     const [feedbacks, setFeedbacks] = useState([]);
 
     // ---------------------------------------------------
-    // Load product
+    // Load product + increase view count + load feedback
     // ---------------------------------------------------
     useEffect(() => {
         async function loadProduct() {
@@ -39,7 +39,19 @@ export default function ProductOverview() {
             }
         }
 
+        // 🔥 Increase view count for relevant product (no login required)
+        async function increaseView() {
+            try {
+                await axios.post(
+                    `http://localhost:3000/api/products/increase_views/${id}`
+                );
+            } catch (error) {
+                console.log("View count error:", error);
+            }
+        }
+
         loadProduct();
+        increaseView();   // <--- IMPORTANT
         loadFeedback();
     }, [id]);
 
@@ -84,8 +96,8 @@ export default function ProductOverview() {
             );
 
             toast.success("Feedback added successfully!");
-            setComment(""); // clear text
-            loadFeedback(); // reload list
+            setComment("");
+            loadFeedback();
         } catch (error) {
             toast.error(error.response?.data?.message || "Error submitting feedback");
         }
@@ -102,7 +114,6 @@ export default function ProductOverview() {
     // Increase quantity
     function increaseQty() {
         if (!selectedSize) return toast.error("Select a size first");
-
         if (quantity < selectedSize.stock) {
             setQuantity(quantity + 1);
         } else {

@@ -7,19 +7,52 @@ export default function AdminOrders() {
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
+    // -------------------------------------------
+    // Load all orders
+    // -------------------------------------------
     useEffect(() => {
-        async function load() {
-            try {
-                const res = await axios.get("http://localhost:3000/api/orders/admin_orders");
-                setOrders(res.data);
-            } catch (err) {
-                console.log(err);
-            } finally {
-                setLoading(false);
-            }
-        }
-        load();
+        loadOrders();
     }, []);
+
+    async function loadOrders() {
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await axios.get(
+                "http://localhost:3000/api/orders/admin_orders",
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+            setOrders(res.data);
+        } catch (err) {
+            console.log(err);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // -------------------------------------------
+    // ACCEPT ORDER
+    // -------------------------------------------
+    async function acceptOrder(orderId) {
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await axios.put(
+                `http://localhost:3000/api/orders/accept_order/${orderId}`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            alert(res.data.message);
+            loadOrders(); // reload
+        } catch (error) {
+            alert(error.response?.data?.message || "Error updating order");
+        }
+    }
 
     return (
         <div className="p-6">
@@ -61,18 +94,35 @@ export default function AdminOrders() {
                                     <td className="p-3">{order.customer_name}</td>
                                     <td className="p-3">{order.customer_phone}</td>
                                     <td className="p-3">{order.customer_address}</td>
+
                                     <td className="p-3 font-bold text-red-600">
                                         Rs. {Number(order.total).toLocaleString()}
                                     </td>
-                                    <td className="p-3 capitalize">{order.status}</td>
 
-                                    <td className="p-3 flex justify-center">
+                                    <td className="p-3 capitalize font-semibold">
+                                        {order.status}
+                                    </td>
+
+                                    <td className="p-3 flex gap-2 justify-center">
+
+                                        {/* View Button */}
                                         <button
                                             onClick={() => setSelectedOrder(order)}
                                             className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                         >
                                             <Eye size={20} />
                                         </button>
+
+                                        {/* Accept Order Button (only if status is processing) */}
+                                        {order.status === "processing" && (
+                                            <button
+                                                onClick={() => acceptOrder(order.order_id)}
+                                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                            >
+                                                Accept
+                                            </button>
+                                        )}
+
                                     </td>
                                 </tr>
                             ))}
