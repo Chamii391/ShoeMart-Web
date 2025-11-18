@@ -3,6 +3,7 @@ import Addproducts from "./addproducts";
 import AdminProduct from "./adminproduct";
 import EditProduct from "./editproduct";
 import toast from "react-hot-toast";
+import AdminOrders from "./adminorder";
 
 export default function AdminPage() {
 
@@ -45,7 +46,7 @@ export default function AdminPage() {
                     <Route path="products" element={<AdminProduct />} />
                     <Route path="add-products" element={<Addproducts />} />
                     <Route path="users" element={<h1>Users</h1>} />
-                    <Route path="orders" element={<h1>Orders</h1>} />
+                    <Route path="orders" element={<AdminOrders />} />
                     <Route path="edit-product" element={<EditProduct />} />
                 </Routes>
             </div>

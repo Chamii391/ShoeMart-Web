@@ -23,13 +23,15 @@ export default function Login() {
       toast.success("Login successful!");
       localStorage.setItem('token', response.data.token);
       localStorage.setItem("userRole", response.data.role); 
+      localStorage.setItem("UserId",response.data.userid)
       console.log(response.data.role)
+      console.log(response.data.userid)
 
       if(response.data.role == "admin"){
         navigate("/admin-page")
       }
       else if(response.data.role == "customer"){
-        navigate("/products")
+        navigate("/client-page")
       }
       
 

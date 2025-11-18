@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Eye } from "lucide-react";
 
-export default function AdminOrders() {
+export default function UsersOrders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
+    const userid =localStorage.getItem("UserId")
+    console.log(userid)
+    
+
+
     useEffect(() => {
         async function load() {
             try {
-                const res = await axios.get("http://localhost:3000/api/orders/admin_orders");
+                const res = await axios.get("http://localhost:3000/api/orders/view_orders/"+userid);
                 setOrders(res.data);
             } catch (err) {
                 console.log(err);

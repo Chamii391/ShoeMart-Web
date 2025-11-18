@@ -1,5 +1,6 @@
 import toast from "react-hot-toast";
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import UsersOrders from "./vieworders";
 
 export default function ClientPage() {
 
@@ -20,10 +21,10 @@ export default function ClientPage() {
 
                 {/* Top Links */}
                 <div className="flex flex-col space-y-4">
-                    <Link to="/client-page/products" className="hover:text-gray-400">Products</Link>
-                    <Link to="/client-page/add-products" className="hover:text-gray-400">Add Products</Link>
-                    <Link to="/client-page/users" className="hover:text-gray-400">Users</Link>
+                
                     <Link to="/client-page/orders" className="hover:text-gray-400">Orders</Link>
+                    <Link to="/client-page/edit-profile" className="hover:text-gray-400">Edit Profile</Link>
+
                 </div>
 
                 {/* Logout Button */}
@@ -41,7 +42,7 @@ export default function ClientPage() {
                     <Route path="products" element={<h1>Products</h1>} />
                     <Route path="add-products" element={<h1>Add Products</h1>} />
                     <Route path="users" element={<h1>Users</h1>} />
-                    <Route path="orders" element={<h1>Orders</h1>} />
+                    <Route path="orders" element={<UsersOrders/>} />
                     <Route path="edit-product" element={<h1>Edit Product</h1>} />
                 </Routes>
             </div>

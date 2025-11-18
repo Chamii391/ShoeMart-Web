@@ -16,7 +16,13 @@ export default function ProductOverview() {
     const [selectedSize, setSelectedSize] = useState(null);
     const [quantity, setQuantity] = useState(1);
 
+    // FEEDBACK STATE
+    const [comment, setComment] = useState("");
+    const [feedbacks, setFeedbacks] = useState([]);
+
+    // ---------------------------------------------------
     // Load product
+    // ---------------------------------------------------
     useEffect(() => {
         async function loadProduct() {
             try {
@@ -34,9 +40,60 @@ export default function ProductOverview() {
         }
 
         loadProduct();
+        loadFeedback();
     }, [id]);
 
+    // ---------------------------------------------------
+    // Load Feedback
+    // ---------------------------------------------------
+    async function loadFeedback() {
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await axios.get(
+                `http://localhost:3000/api/feedbacks/view_feedback/${id}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            setFeedbacks(res.data.feedbacks || []);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    // ---------------------------------------------------
+    // Submit Feedback
+    // ---------------------------------------------------
+    async function submitFeedback() {
+        if (!comment.trim()) return toast.error("Please write feedback");
+
+        try {
+            const token = localStorage.getItem("token");
+
+            await axios.post(
+                "http://localhost:3000/api/feedbacks/add_feedback",
+                {
+                    product_id: id,
+                    comment
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            toast.success("Feedback added successfully!");
+            setComment(""); // clear text
+            loadFeedback(); // reload list
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Error submitting feedback");
+        }
+    }
+
+    // ---------------------------------------------------
     // Size select
+    // ---------------------------------------------------
     function handleSizeSelect(sizeObj) {
         setSelectedSize(sizeObj);
         setQuantity(1);
@@ -90,6 +147,9 @@ export default function ProductOverview() {
         });
     }
 
+    // ---------------------------------------------------
+    // UI HANDLING
+    // ---------------------------------------------------
     if (loading) {
         return (
             <div className="p-10 text-center text-gray-600 text-xl">
@@ -232,6 +292,47 @@ export default function ProductOverview() {
                         <h3 className="font-bold text-lg">Description</h3>
                         <p className="text-gray-700 mt-2">{product.description}</p>
                     </div>
+                </div>
+            </div>
+
+            {/* FEEDBACK SECTION */}
+            <div className="mt-12 border-t pt-8">
+                <h2 className="text-2xl font-bold mb-4">Customer Feedback</h2>
+
+                {/* Write Feedback */}
+                <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Write your feedback..."
+                    className="w-full p-3 border rounded-lg"
+                    rows="3"
+                ></textarea>
+
+                <button
+                    onClick={submitFeedback}
+                    className="mt-3 bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700"
+                >
+                    Submit Feedback
+                </button>
+
+                {/* Feedback List */}
+                <div className="mt-6">
+                    {feedbacks.length === 0 ? (
+                        <p className="text-gray-500">No feedback yet.</p>
+                    ) : (
+                        feedbacks.map((f, index) => (
+                            <div
+                                key={index}
+                                className="bg-gray-100 p-4 rounded-lg mb-3"
+                            >
+                                <p className="font-semibold">{f.user_name}</p>
+                                <p className="text-gray-700">{f.comment}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(f.created_at).toLocaleString()}
+                                </p>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

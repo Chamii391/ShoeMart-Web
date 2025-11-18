@@ -314,3 +314,144 @@ export async function View_My_Orders(req, res) {
     });
   }
 }
+
+
+export async function View_Admin_Orders(req, res) {
+  try {
+    const sql = `
+      SELECT
+        o.order_id,
+        o.customer_name,
+        o.customer_phone,
+        o.customer_address,
+        o.status,
+        o.total,
+        o.order_date,
+        oi.order_item_id,
+        oi.product_id,
+        oi.product_name,
+        oi.price,
+        oi.quantity,
+        oi.line_total,
+        ps.size_value,
+        p.images
+      FROM orders o
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      ORDER BY o.order_date DESC, o.order_id DESC
+    `;
+
+    const [rows] = await pool.query(sql);
+
+    const map = new Map();
+
+    for (const r of rows) {
+      if (!map.has(r.order_id)) {
+        map.set(r.order_id, {
+          order_id: r.order_id,
+          customer_name: r.customer_name,
+          customer_phone: r.customer_phone,
+          customer_address: r.customer_address,
+          status: r.status,
+          total: r.total,
+          order_date: r.order_date,
+          items: []
+        });
+      }
+
+      if (r.order_item_id) {
+        const images = r.images ? JSON.parse(r.images) : [];
+
+        map.get(r.order_id).items.push({
+          product_name: r.product_name,
+          size_value: r.size_value,
+          quantity: r.quantity,
+          price: r.price,
+          line_total: r.line_total,
+          image: images[0] || null
+        });
+      }
+    }
+
+    return res.status(200).json([...map.values()]);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Error loading orders" });
+  }
+}
+
+export async function View_Orders_ByUser(req, res) {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const sql = `
+      SELECT
+        o.order_id,
+        o.user_id,
+        o.customer_name,
+        o.customer_phone,
+        o.customer_address,
+        o.status,
+        o.total,
+        o.order_date,
+        oi.order_item_id,
+        oi.product_id,
+        oi.product_name,
+        oi.price,
+        oi.quantity,
+        oi.line_total,
+        ps.size_value,
+        p.images
+      FROM orders o
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      WHERE o.user_id = ?
+      ORDER BY o.order_date DESC, o.order_id DESC
+    `;
+
+    const [rows] = await pool.query(sql, [user_id]);
+
+    // GROUP ORDERS
+    const map = new Map();
+
+    for (const r of rows) {
+      if (!map.has(r.order_id)) {
+        map.set(r.order_id, {
+          order_id: r.order_id,
+          user_id: r.user_id,
+          customer_name: r.customer_name,
+          customer_phone: r.customer_phone,
+          customer_address: r.customer_address,
+          status: r.status,
+          total: r.total,
+          order_date: r.order_date,
+          items: []
+        });
+      }
+
+      if (r.order_item_id) {
+        const images = r.images ? JSON.parse(r.images) : [];
+
+        map.get(r.order_id).items.push({
+          product_name: r.product_name,
+          size_value: r.size_value,
+          quantity: r.quantity,
+          price: r.price,
+          line_total: r.line_total,
+          image: images[0] || null
+        });
+      }
+    }
+
+    return res.status(200).json([...map.values()]);
+  } catch (err) {
+    console.error("Error loading orders by user:", err);
+    return res.status(500).json({ message: "Error loading orders" });
+  }
+}

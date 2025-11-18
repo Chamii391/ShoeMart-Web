@@ -80,7 +80,8 @@ export async function login(req,res){
         res.status(200).json({
             message:"Login successful",
             token:token,
-            role:user.role
+            role:user.role,
+            userid:user.userid
         })
         
     }catch(error){
