@@ -672,3 +672,91 @@ export async function View_Delivery_Orders(req, res) {
     return res.status(500).json({ message: "Error loading delivery orders" });
   }
 }
+
+export async function Cancel_Order(req, res) {
+  let connection;
+
+  try {
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({
+        message: "Unauthorized: user not found in token"
+      });
+    }
+
+    const userId = user.userid;
+
+    const customer = await isCustomer(userId);
+    if (!customer) {
+      return res.status(403).json({
+        message: "Only customers can cancel orders"
+      });
+    }
+
+    const { order_id } = req.params;
+
+    if (!order_id) {
+      return res.status(400).json({
+        message: "Order ID is required"
+      });
+    }
+
+    connection = await pool.getConnection();
+
+    const [rows] = await connection.query(
+      "SELECT user_id, status FROM orders WHERE order_id = ?",
+      [order_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const order = rows[0];
+
+    if (order.user_id !== userId) {
+      return res.status(403).json({
+        message: "You can only cancel your own orders"
+      });
+    }
+
+    if (order.status !== "processing") {
+      return res.status(400).json({
+        message: "You can cancel only orders that are in 'processing' status"
+      });
+    }
+
+    // return stock to product_sizes table
+    const [items] = await connection.query(
+      "SELECT product_id, size_id, quantity FROM order_items WHERE order_id = ?",
+      [order_id]
+    );
+
+    for (const item of items) {
+      await connection.query(
+        `UPDATE product_sizes
+         SET stock = stock + ?
+         WHERE product_id = ? AND size_id = ?`,
+        [item.quantity, item.product_id, item.size_id]
+      );
+    }
+
+    await connection.query(
+      "UPDATE orders SET status = 'cancelled' WHERE order_id = ?",
+      [order_id]
+    );
+
+    return res.status(200).json({
+      message: "Order cancelled successfully"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error cancelling order",
+      error: error.message
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+}

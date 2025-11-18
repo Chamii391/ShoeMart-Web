@@ -7,15 +7,21 @@ export default function UsersOrders() {
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
-    const userid =localStorage.getItem("UserId")
-    console.log(userid)
-    
+    const userid = localStorage.getItem("UserId");
 
-
+    // -------------------------------------------
+    // Load Orders
+    // -------------------------------------------
     useEffect(() => {
         async function load() {
             try {
-                const res = await axios.get("http://localhost:3000/api/orders/view_orders/"+userid);
+                const token = localStorage.getItem("token");
+                const res = await axios.get(
+                    "http://localhost:3000/api/orders/view_orders/" + userid,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
                 setOrders(res.data);
             } catch (err) {
                 console.log(err);
@@ -24,13 +30,40 @@ export default function UsersOrders() {
             }
         }
         load();
-    }, []);
+    }, [userid]);
+
+    // -------------------------------------------
+    // Cancel Order
+    // -------------------------------------------
+    async function cancelOrder(orderId) {
+        if (!window.confirm("Are you sure you want to cancel this order?")) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await axios.put(
+                `http://localhost:3000/api/orders/cancel_order/${orderId}`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            alert(res.data.message);
+            // reload orders
+            window.location.reload();
+        } catch (error) {
+            alert(error.response?.data?.message || "Failed to cancel order");
+        }
+    }
 
     return (
         <div className="p-6">
 
             <h1 className="text-3xl font-bold text-red-600 mb-6">
-                📦 All Orders
+                📦 My Orders
             </h1>
 
             {loading && (
@@ -66,18 +99,35 @@ export default function UsersOrders() {
                                     <td className="p-3">{order.customer_name}</td>
                                     <td className="p-3">{order.customer_phone}</td>
                                     <td className="p-3">{order.customer_address}</td>
+
                                     <td className="p-3 font-bold text-red-600">
                                         Rs. {Number(order.total).toLocaleString()}
                                     </td>
-                                    <td className="p-3 capitalize">{order.status}</td>
 
-                                    <td className="p-3 flex justify-center">
+                                    <td className="p-3 capitalize font-semibold">
+                                        {order.status}
+                                    </td>
+
+                                    <td className="p-3 flex justify-center gap-2">
+
+                                        {/* View Order */}
                                         <button
                                             onClick={() => setSelectedOrder(order)}
                                             className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                         >
                                             <Eye size={20} />
                                         </button>
+
+                                        {/* Cancel Button (ONLY for processing orders) */}
+                                        {order.status === "processing" && (
+                                            <button
+                                                onClick={() => cancelOrder(order.order_id)}
+                                                className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
+
                                     </td>
                                 </tr>
                             ))}
@@ -107,6 +157,7 @@ export default function UsersOrders() {
                                     <img
                                         src={item.image}
                                         className="w-20 h-20 object-cover rounded border"
+                                        alt="product"
                                     />
 
                                     <div>

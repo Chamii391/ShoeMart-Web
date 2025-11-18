@@ -23,7 +23,7 @@ export default function ClientPage() {
                 <div className="flex flex-col space-y-4">
                 
                     <Link to="/client-page/orders" className="hover:text-gray-400">Orders</Link>
-                    <Link to="/client-page/edit-profile" className="hover:text-gray-400">Edit Profile</Link>
+                    <Link to="/client-page/edit-profile" className="hover:text-gray-400">Edit</Link>
 
                 </div>
 
