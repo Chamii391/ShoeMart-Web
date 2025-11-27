@@ -12,6 +12,8 @@ export default function AdminPage() {
     function logOut() {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
+        localStorage.removeItem("userRole");
+        
         toast.success("Log out successful");
         navigate("/");
     }

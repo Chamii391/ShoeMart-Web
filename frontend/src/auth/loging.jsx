@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -8,11 +8,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   async function handleLogin(e) {
-    e.preventDefault(); // Prevent reload
+    e.preventDefault();
+    setLoading(true);
 
     try {
       const response = await axios.post('http://localhost:3000/api/users/login', {
@@ -22,155 +24,124 @@ export default function Login() {
 
       toast.success("Login successful!");
       localStorage.setItem('token', response.data.token);
-      localStorage.setItem("userRole", response.data.role); 
-      localStorage.setItem("UserId",response.data.userid)
-      console.log(response.data.role)
-      console.log(response.data.userid)
+      localStorage.setItem("userRole", response.data.role);
+      localStorage.setItem("UserId", response.data.userid);
 
-      if(response.data.role == "admin"){
-        navigate("/admin-page")
+      if (response.data.role === "admin") {
+        navigate("/admin-page");
+      } else if (response.data.role === "customer") {
+        navigate("/client-page");
+      } else if (response.data.role === "delivery") {
+        navigate("/deliver-page");
       }
-      else if(response.data.role == "customer"){
-        navigate("/client-page")
-      }
-      else if(response.data.role == "delivery"){
-        navigate("/deliver-page")
-      }
-      
 
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gray-900 blur-xl opacity-40"></div>
-              <div className="relative bg-linear-to-br from-gray-900 via-gray-800 to-gray-700 p-4 rounded-2xl shadow-2xl">
-                <ShoppingBag className="w-12 h-12 text-white" strokeWidth={2.5} />
-              </div>
-            </div>
+    <div className="h-screen w-full bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      
+      {/* Background Decoration */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-red-600 rounded-full blur-3xl opacity-20"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-red-600 rounded-full blur-3xl opacity-20"></div>
+      
+      <div className="w-full max-w-sm relative z-10">
+        
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-flex items-center justify-center">
+              <svg 
+                className="w-10 h-10 text-red-600" 
+                fill="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path d="M2 18h20v2H2v-2zm2.55-7.86c-.21-.4-.17-.87.07-1.24l3.14-4.84c.28-.43.76-.69 1.27-.69h2.09c.37 0 .72.15.98.41l.93.93c.26.26.62.41.98.41h5.99c.55 0 1 .45 1 1v2c0 1.1-.9 2-2 2h-1.5L19 13h-2l-2-3h-1.5l-1-1.5H11l-2 3.5H7l-.75 1.5H4.5c-.73 0-1.41-.38-1.79-.99l-.16-.27z"/>
+              </svg>
+            </Link>
+            <h1 className="text-2xl font-black text-black mt-3">
+              SUPUN<span className="text-red-600">SHOES</span>
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">Welcome back!</p>
           </div>
 
-          <h1 className="text-5xl font-bold tracking-tight text-gray-900 mb-1">
-            SUPUN
-          </h1>
-          <p className="text-lg font-semibold text-gray-700 tracking-widest">SHOE MART</p>
-          <p className="text-xs text-gray-500 mt-2 tracking-wider">Step Into Style</p>
-        </div>
-
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600 mb-8">Sign in to continue shopping</p>
-
-          <form className="space-y-6" onSubmit={handleLogin}>
-
-            {/* Username Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <div className="relative">
-                <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  onChange={(e) => setUsername(e.target.value)}
-                  value={username}
-                  type="text"
-                  placeholder="Enter your username"
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                />
-              </div>
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            
+            {/* Username */}
+            <div className="relative">
+              <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                onChange={(e) => setUsername(e.target.value)}
+                value={username}
+                type="text"
+                placeholder="Username"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-red-600 focus:bg-white outline-none transition-all"
+                required
+              />
             </div>
 
-            {/* Password Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  onChange={(e) => setPassword(e.target.value)}
-                  value={password}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  className="w-full pl-11 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+            {/* Password */}
+            <div className="relative">
+              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:border-red-600 focus:bg-white outline-none transition-all"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
 
-            {/* Remember + Forgot */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-400"
-                />
-                <label htmlFor="remember" className="ml-2 text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-              <a href="#" className="text-sm text-gray-600 hover:text-gray-900">
-                Forgot password?
-              </a>
+            {/* Forgot Password */}
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-sm text-red-600 hover:text-black transition-colors">
+                Forgot Password?
+              </Link>
             </div>
 
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+              disabled={loading}
+              className="w-full bg-red-600 hover:bg-black text-white py-3 rounded-lg font-bold tracking-wide transition-all duration-300 disabled:opacity-50"
             >
-              Sign In
+              {loading ? (
+                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              ) : (
+                "SIGN IN"
+              )}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">OR</span>
-            </div>
-          </div>
-
-          {/* Register Section */}
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">Don't have an account?</p>
-            <Link
-              to="/register"
-              className="inline-block w-full bg-linear-to-r from-gray-100 to-gray-300 text-gray-900 py-3 rounded-lg font-semibold hover:from-gray-200 hover:to-gray-400 transition shadow-md hover:shadow-lg border border-gray-300"
-            >
-              Create New Account
+          {/* Register Link */}
+          <p className="text-center text-gray-500 text-sm mt-6">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-red-600 font-bold hover:text-black transition-colors">
+              Sign Up
             </Link>
-          </div>
+          </p>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-500 mt-6">
-          By continuing, you agree to our{' '}
-          <a href="#" className="text-gray-700 hover:text-gray-900 underline">
-            Terms of Service
-          </a>{' '}
-          and{' '}
-          <a href="#" className="text-gray-700 hover:text-gray-900 underline">
-            Privacy Policy
-          </a>
+        {/* Back to Home */}
+        <p className="text-center mt-6">
+          <Link to="/" className="text-gray-400 text-sm hover:text-red-600 transition-colors">
+            ← Back to Home
+          </Link>
         </p>
       </div>
     </div>

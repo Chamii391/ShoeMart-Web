@@ -9,6 +9,9 @@ export default function ClientPage() {
     function logOut() {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("UserId");
+
         toast.success("Log out successful");
         navigate("/");
     }

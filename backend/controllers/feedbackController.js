@@ -89,10 +89,7 @@ export async function Add_Feedback(req, res) {
 export async function View_Feedback(req, res) {
   try {
     // Require login
-    const user = req.user;
-    if (!user || !user.userid) {
-      return res.status(401).json({ message: "Unauthorized: user not found" });
-    }
+    
 
     const productId = req.params.id; // /view_feedback/:id
 
