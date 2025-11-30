@@ -562,7 +562,7 @@ export async function Get_Top_Viewed_Products(req, res) {
       SELECT product_id, name, price, images, views 
       FROM products
       ORDER BY views DESC
-      LIMIT 6
+      LIMIT 8
       `
     );
 

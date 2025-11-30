@@ -327,18 +327,27 @@ export async function View_Admin_Orders(req, res) {
         o.status,
         o.total,
         o.order_date,
+
+        -- order items
         oi.order_item_id,
         oi.product_id,
+        oi.size_id,
         oi.product_name,
         oi.price,
         oi.quantity,
         oi.line_total,
+
+        -- product sizes
         ps.size_value,
+
+        -- product
         p.images
+
       FROM orders o
       LEFT JOIN order_items oi ON o.order_id = oi.order_id
       LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
       LEFT JOIN products p ON oi.product_id = p.product_id
+
       ORDER BY o.order_date DESC, o.order_id DESC
     `;
 
@@ -364,6 +373,8 @@ export async function View_Admin_Orders(req, res) {
         const images = r.images ? JSON.parse(r.images) : [];
 
         map.get(r.order_id).items.push({
+          product_id: r.product_id,   // Added
+          size_id: r.size_id,         // Added
           product_name: r.product_name,
           size_value: r.size_value,
           quantity: r.quantity,
@@ -380,6 +391,7 @@ export async function View_Admin_Orders(req, res) {
     return res.status(500).json({ message: "Error loading orders" });
   }
 }
+
 
 export async function View_Orders_ByUser(req, res) {
   try {

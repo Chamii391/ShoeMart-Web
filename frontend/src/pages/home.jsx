@@ -357,28 +357,15 @@ const Home = () => {
                         <span className="text-xs text-gray-500 ml-2 font-bold">(4.8)</span>
                       </div>
 
-                      {/* Price Section */}
-                      <div className="flex items-end justify-between mb-5">
-                        <div>
-                          <p className="text-red-600 font-black text-3xl tracking-tight">
-                            Rs. {product.price.toLocaleString()}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-400 line-through text-sm font-medium">
-                              Rs. {Math.round(product.price * 1.3).toLocaleString()}
-                            </span>
-                            <span className="bg-black text-white px-2 py-0.5 text-xs font-black">
-                              -23%
-                            </span>
-                          </div>
-                        </div>
+                      {/* Price Section - MODIFIED: Only original price */}
+                      <div className="mb-5">
+                        <p className="text-red-600 font-black text-3xl tracking-tight">
+                          Rs. {product.price.toLocaleString()}
+                        </p>
                       </div>
 
-                      {/* Add to Cart Button */}
-                      <button className="w-full bg-black hover:bg-red-600 text-white py-4 font-black text-sm tracking-widest transition-all duration-500 flex items-center justify-center gap-3 group/btn transform hover:-translate-y-1 shadow-lg hover:shadow-2xl">
-                        <ShoppingCart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                        ADD TO CART
-                      </button>
+                      {/* Add to Cart Button - MODIFIED: Removed ShoppingCart icon */}
+                     
                     </div>
                   </div>
                 ))}
