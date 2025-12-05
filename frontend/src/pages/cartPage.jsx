@@ -90,7 +90,7 @@ export default function CartPage() {
             return;
         }
 
-        navigate("/checout", {
+        navigate("/checkout", {
             state: {
                 checkoutItems: cart,
                 total: finalTotal

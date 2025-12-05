@@ -772,3 +772,85 @@ export async function Cancel_Order(req, res) {
     if (connection) connection.release();
   }
 }
+
+
+export async function Total_Order_Count(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS total_orders
+      FROM orders
+    `);
+
+    return res.status(200).json({
+      total_orders: rows[0].total_orders
+    });
+
+  } catch (error) {
+    console.error("Error fetching total order count:", error);
+    return res.status(500).json({
+      message: "Error fetching total order count",
+      error: error.message
+    });
+  }
+}
+
+
+
+export async function Processing_Order_Count(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS processing_orders
+      FROM orders
+      WHERE status = 'processing'
+    `);
+
+    return res.status(200).json({
+      processing_orders: rows[0].processing_orders
+    });
+
+  } catch (error) {
+    console.error("Error fetching processing order count:", error);
+    return res.status(500).json({
+      message: "Error fetching processing count",
+      error: error.message
+    });
+  }
+}
+
+export async function Recent_Four_Orders(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        o.order_id,
+        o.total,
+        o.status,
+        o.order_date,
+        u.firstname,
+        u.lastname
+      FROM orders o
+      LEFT JOIN users u
+        ON o.user_id = u.userid
+      ORDER BY o.order_date DESC, o.order_id DESC
+      LIMIT 4
+    `);
+
+    // Format response (optional clean structure)
+    const data = rows.map(r => ({
+      order_id: r.order_id,
+      firstname: r.firstname || null,
+      lastname: r.lastname || null,
+      total: r.total,
+      status: r.status,
+      order_date: r.order_date
+    }));
+
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("Error fetching recent 4 orders:", error);
+    return res.status(500).json({
+      message: "Error fetching recent orders",
+      error: error.message
+    });
+  }
+}

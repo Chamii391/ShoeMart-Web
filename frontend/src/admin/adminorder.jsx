@@ -68,7 +68,7 @@ export default function AdminOrders() {
         setActionLoading(orderId);
         try {
             const token = localStorage.getItem("token");
-            await axios.put(`http://localhost:3000/api/orders/update_status/${orderId}`, 
+            await axios.put(`http://localhost:3000/api/orders/accept_order/${orderId}`, 
                 { status: "delivering" },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
