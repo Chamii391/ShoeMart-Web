@@ -659,3 +659,40 @@ export async function Get_Low_Stock_Products(req, res) {
   }
 }
 
+
+// ================================
+// GET NEWLY ADDED 20 PRODUCTS
+// ================================
+export async function Get_Newly_Added_Products(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        product_id,
+        name,
+        price,
+        images,
+        main_category,
+        created_at
+      FROM products
+      WHERE isActive = 'active'
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
+
+    // Parse images from JSON
+    const products = rows.map(p => ({
+      ...p,
+      images: p.images ? JSON.parse(p.images) : []
+    }));
+
+    return res.status(200).json(products);
+
+  } catch (error) {
+    console.error("Error fetching newly added products:", error);
+    return res.status(500).json({
+      message: "Failed to load newly added products",
+      error: error.message
+    });
+  }
+}
+

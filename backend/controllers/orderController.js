@@ -854,3 +854,72 @@ export async function Recent_Four_Orders(req, res) {
     });
   }
 }
+
+
+export async function Get_User_Order_Stats(req, res) {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // 1) COUNT ORDERS BY STATUS
+    const [countRows] = await pool.query(
+      `
+      SELECT
+        COUNT(*) AS total_orders,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing_orders,
+        SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) AS delivering_orders,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders
+      FROM orders
+      WHERE user_id = ?
+      `,
+      [user_id]
+    );
+
+    // 2) GET RECENT 4 ORDERS FOR THIS USER
+    const [recentRows] = await pool.query(
+      `
+      SELECT 
+        o.order_id,
+        o.total,
+        o.status,
+        o.order_date,
+        u.firstname,
+        u.lastname
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.userid
+      WHERE o.user_id = ?
+      ORDER BY o.order_date DESC, o.order_id DESC
+      LIMIT 4
+      `,
+      [user_id]
+    );
+
+    const recent_orders = recentRows.map((r) => ({
+      order_id: r.order_id,
+      total: r.total,
+      status: r.status,
+      order_date: r.order_date,
+      firstname: r.firstname,
+      lastname: r.lastname,
+    }));
+
+    return res.status(200).json({
+      counts: {
+        total_orders: countRows[0].total_orders || 0,
+        processing_orders: countRows[0].processing_orders || 0,
+        delivering_orders: countRows[0].delivering_orders || 0,
+        completed_orders: countRows[0].completed_orders || 0,
+      },
+      recent_orders,
+    });
+  } catch (error) {
+    console.error("Error fetching user order stats:", error);
+    return res.status(500).json({
+      message: "Error fetching user order stats",
+      error: error.message,
+    });
+  }
+}

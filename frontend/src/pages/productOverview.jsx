@@ -5,11 +5,12 @@ import toast from "react-hot-toast";
 import { 
     ShoppingCart, Zap, Star, Heart, Minus, Plus, MessageCircle, 
     Check, ChevronRight, Truck, Shield, RotateCcw, Share2, 
-    ChevronLeft, ZoomIn, Loader2, Package, Send
+    ChevronLeft, ZoomIn, Loader2, Package, Send, ArrowRight
 } from "lucide-react";
 import { addToCart } from "../utils/cart";
 import Header from "../components/header";
 import Footer from "../components/footer";
+import ProductCard from "../components/productCart";
 
 export default function ProductOverview() {
     const { id } = useParams();
@@ -26,6 +27,10 @@ export default function ProductOverview() {
     const [isWishlisted, setIsWishlisted] = useState(false);
     const [addingToCart, setAddingToCart] = useState(false);
     
+    // Related Products State
+    const [relatedProducts, setRelatedProducts] = useState([]);
+    const [loadingRelated, setLoadingRelated] = useState(true);
+    
     // Image zoom
     const [isZooming, setIsZooming] = useState(false);
     const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
@@ -36,7 +41,15 @@ export default function ProductOverview() {
         increaseView();
     }, [id]);
 
+    // Load related products when product loads
+    useEffect(() => {
+        if (product) {
+            loadRelatedProducts();
+        }
+    }, [product]);
+
     async function loadProduct() {
+        setLoading(true);
         try {
             const res = await axios.get(`http://localhost:3000/api/products/view_product/${id}`);
             setProduct(res.data);
@@ -46,6 +59,28 @@ export default function ProductOverview() {
             console.log(error);
         } finally {
             setLoading(false);
+        }
+    }
+
+    // Load Related Products (Frontend Only)
+    async function loadRelatedProducts() {
+        setLoadingRelated(true);
+        try {
+            const res = await axios.get("http://localhost:3000/api/products/view_products");
+            
+            // Filter by same category and exclude current product
+            const related = res.data
+                .filter(p => 
+                    p.main_category === product.main_category && 
+                    p.product_id !== product.product_id
+                )
+                .slice(0, 4); // Get only 4 products
+            
+            setRelatedProducts(related);
+        } catch (error) {
+            console.log("Error loading related products:", error);
+        } finally {
+            setLoadingRelated(false);
         }
     }
 
@@ -409,6 +444,59 @@ export default function ProductOverview() {
                             {product.color && <span>Color: {product.color}</span>}
                         </div>
                     </div>
+                </div>
+
+                {/* ============ RELATED PRODUCTS SECTION ============ */}
+                <div className="mt-12 pt-8 border-t-2 border-black">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <Package className="w-5 h-5 text-red-600" />
+                            <h2 className="text-xl font-black">YOU MAY ALSO LIKE</h2>
+                            <span className="bg-black text-white px-2 py-0.5 text-xs font-bold uppercase">
+                                {product.main_category}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={() => navigate('/products')}
+                            className="text-red-600 text-sm font-bold hover:text-black flex items-center gap-1 transition-all"
+                        >
+                            VIEW ALL
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Loading Related */}
+                    {loadingRelated && (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+                        </div>
+                    )}
+
+                    {/* Related Products Grid */}
+                    {!loadingRelated && relatedProducts.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {relatedProducts.map((relatedProduct) => (
+                                <ProductCard 
+                                    key={relatedProduct.product_id} 
+                                    product={relatedProduct} 
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* No Related Products */}
+                    {!loadingRelated && relatedProducts.length === 0 && (
+                        <div className="bg-gray-50 p-8 text-center">
+                            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500 text-sm mb-4">No related products found</p>
+                            <button 
+                                onClick={() => navigate('/products')}
+                                className="bg-black hover:bg-red-600 text-white px-6 py-2 font-bold text-sm transition-all"
+                            >
+                                BROWSE ALL PRODUCTS
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Reviews Section */}

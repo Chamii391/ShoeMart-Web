@@ -114,15 +114,15 @@ const Header = () => {
               </div>
 
               <Link
-                to="/new-arrivals"
+                to="/new-arrival"
                 className={`px-4 py-2 text-sm font-bold tracking-wide transition-all duration-300 relative group ${
-                  isActive('/new-arrivals') ? 'text-red-600' : 'text-black hover:text-red-600'
+                  isActive('/new-arrival') ? 'text-red-600' : 'text-black hover:text-red-600'
                 }`}
               >
                 NEW ARRIVALS
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] px-1 rounded">NEW</span>
                 <span className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-red-600 transition-all duration-300 ${
-                  isActive('/new-arrivals') ? 'w-full' : 'w-0 group-hover:w-full'
+                  isActive('/new-arrival') ? 'w-full' : 'w-0 group-hover:w-full'
                 }`}></span>
               </Link>
 
@@ -284,10 +284,10 @@ const Header = () => {
                 Kids' Collection
               </Link>
               <Link
-                to="/new-arrivals"
+                to="/new-arrival"
                 onClick={() => setIsMenuOpen(false)}
                 className={`block px-4 py-3 text-sm font-bold rounded-lg transition-all ${
-                  isActive('/new-arrivals') ? 'bg-red-600 text-white' : 'text-black hover:bg-gray-100'
+                  isActive('/new-arrival') ? 'bg-red-600 text-white' : 'text-black hover:bg-gray-100'
                 }`}
               >
                 ✨ NEW ARRIVALS

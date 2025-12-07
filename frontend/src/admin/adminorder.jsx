@@ -357,7 +357,7 @@ function OrderModal({ order, onClose, onMarkDelivering, actionLoading, copiedFie
                                             </span>
                                         </div>
                                         <div className="flex gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-1">
-                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(order.created_at)}</span>
+                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(order.order_date)}</span>
                                             <span className="flex items-center gap-1"><Box className="w-3 h-3" />{order.items?.length || 0} items</span>
                                         </div>
                                     </div>

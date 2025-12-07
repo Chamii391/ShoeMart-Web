@@ -81,7 +81,8 @@ export async function login(req,res){
             message:"Login successful",
             token:token,
             role:user.role,
-            userid:user.userid
+            userid:user.userid,
+            username:user.username
         })
         
     }catch(error){
@@ -218,5 +219,27 @@ export async function updateUser(req, res) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error updating user" });
+  }
+}
+
+
+export async function Total_Customer_Count(req, res) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT COUNT(*) AS total_customers
+      FROM users
+      WHERE role = 'customer' AND isActive = 'active'
+    `);
+
+    return res.status(200).json({
+      total_customers: rows[0].total_customers
+    });
+
+  } catch (error) {
+    console.error("Error fetching customer count:", error);
+    return res.status(500).json({
+      message: "Error fetching customer count",
+      error: error.message
+    });
   }
 }

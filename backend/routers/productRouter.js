@@ -1,5 +1,5 @@
 import express from "express";
-import { Add_Product, Delete_Product, Get_Low_Stock_Products, Get_Product_Count, Get_Top_Viewed_Products, Increase_Product_Views, Update_Product_Details, View_Product_ById, View_Products } from "../controllers/productController.js";
+import { Add_Product, Delete_Product, Get_Low_Stock_Products, Get_Newly_Added_Products, Get_Product_Count, Get_Top_Viewed_Products, Increase_Product_Views, Update_Product_Details, View_Product_ById, View_Products } from "../controllers/productController.js";
 
 
 
@@ -14,6 +14,8 @@ productRouter.post("/increase_views/:id", Increase_Product_Views);
 productRouter.get("/top_viewed", Get_Top_Viewed_Products);
 productRouter.get("/count", Get_Product_Count);
 productRouter.get("/low-stock", Get_Low_Stock_Products);
+productRouter.get("/new-products", Get_Newly_Added_Products);
+
 
 
 

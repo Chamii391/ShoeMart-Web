@@ -1,5 +1,6 @@
 import { Link, Route, Routes, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import Addproducts from "./addproducts";
 import AdminProduct from "./adminproduct";
 import EditProduct from "./editproduct";
@@ -17,7 +18,8 @@ import {
     ChevronRight,
     TrendingUp,
     Clock,
-    AlertCircle
+    AlertCircle,
+    Loader2
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -257,14 +259,110 @@ export default function AdminPage() {
     );
 }
 
-// Dashboard Home Component
+// ============ DASHBOARD WITH REAL DATA ============
 function AdminDashboard() {
-    const stats = [
-        { label: "Total Products", value: "156", icon: Package, color: "bg-black" },
-        { label: "Total Orders", value: "324", icon: ShoppingCart, color: "bg-red-600" },
-        { label: "Customers", value: "1,205", icon: Users, color: "bg-black" },
-        { label: "Pending Orders", value: "12", icon: Clock, color: "bg-red-600" },
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalCustomers: 0,
+        pendingOrders: 0
+    });
+    const [recentOrders, setRecentOrders] = useState([]);
+    const [lowStockProducts, setLowStockProducts] = useState([]);
+
+    // Load all dashboard data
+    useEffect(() => {
+        loadDashboardData();
+    }, []);
+
+    async function loadDashboardData() {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // Fetch all data in parallel
+            const [
+                productsRes,
+                ordersRes,
+                customersRes,
+                pendingRes,
+                recentOrdersRes,
+                lowStockRes
+            ] = await Promise.all([
+                axios.get("http://localhost:3000/api/products/count", { headers }),
+                axios.get("http://localhost:3000/api/orders/count-total", { headers }),
+                axios.get("http://localhost:3000/api/users/count-customers", { headers }),
+                axios.get("http://localhost:3000/api/orders/count-processing", { headers }),
+                axios.get("http://localhost:3000/api/orders/recent-four", { headers }),
+                axios.get("http://localhost:3000/api/products/low-stock", { headers })
+            ]);
+
+            setStats({
+                
+                    totalProducts: productsRes.data.total_products || 0,
+                    totalOrders: ordersRes.data.total_orders || 0,
+                    totalCustomers: customersRes.data.total_customers || 0,
+                    pendingOrders: pendingRes.data.processing_orders || 0
+                });
+
+            setRecentOrders(recentOrdersRes.data || []);
+            setLowStockProducts(lowStockRes.data || []);
+            
+        } catch (error) {
+            console.error("Error loading dashboard data:", error);
+            toast.error("Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Format date
+    const formatDate = (date) => {
+        if (!date) return "N/A";
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    // Get status style
+    const getStatusStyle = (status) => {
+        switch (status?.toLowerCase()) {
+            case "processing":
+                return "bg-amber-100 text-amber-700";
+            case "delivering":
+                return "bg-blue-100 text-blue-700";
+            case "completed":
+                return "bg-emerald-100 text-emerald-700";
+            case "cancelled":
+                return "bg-red-100 text-red-600";
+            default:
+                return "bg-gray-100 text-gray-700";
+        }
+    };
+
+    // Stats config
+    const statsConfig = [
+        { label: "Total Products", value: stats.totalProducts, icon: Package, color: "bg-black" },
+        { label: "Total Orders", value: stats.totalOrders, icon: ShoppingCart, color: "bg-red-600" },
+        { label: "Customers", value: stats.totalCustomers, icon: Users, color: "bg-black" },
+        { label: "Pending Orders", value: stats.pendingOrders, icon: Clock, color: "bg-red-600" },
     ];
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-500 font-medium">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -287,7 +385,7 @@ function AdminDashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {stats.map((stat, index) => (
+                {statsConfig.map((stat, index) => (
                     <div key={index} className="bg-white p-5 border-2 border-gray-100 hover:border-red-600 transition-all">
                         <div className="flex items-center justify-between mb-3">
                             <div className={`${stat.color} p-2 text-white`}>
@@ -295,7 +393,7 @@ function AdminDashboard() {
                             </div>
                             <TrendingUp className="w-4 h-4 text-green-500" />
                         </div>
-                        <p className="text-3xl font-black">{stat.value}</p>
+                        <p className="text-3xl font-black">{stat.value.toLocaleString()}</p>
                         <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
                     </div>
                 ))}
@@ -338,6 +436,7 @@ function AdminDashboard() {
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
                 {/* Recent Orders */}
                 <div className="bg-white border-2 border-gray-100">
                     <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -350,29 +449,37 @@ function AdminDashboard() {
                         </Link>
                     </div>
                     <div className="divide-y divide-gray-100">
-                        {[
-                            { id: "1001", customer: "Amal Perera", amount: "5,500", status: "Pending" },
-                            { id: "1002", customer: "Tharushi Silva", amount: "8,200", status: "Processing" },
-                            { id: "1003", customer: "Kamal Fernando", amount: "12,000", status: "Delivered" },
-                            { id: "1004", customer: "Nimal Jayasuriya", amount: "4,500", status: "Pending" },
-                        ].map((order, index) => (
-                            <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                                <div>
-                                    <p className="font-bold">Order #{order.id}</p>
-                                    <p className="text-sm text-gray-500">{order.customer}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-black text-red-600">Rs. {order.amount}</p>
-                                    <span className={`text-xs px-2 py-1 font-bold ${
-                                        order.status === "Pending" ? "bg-yellow-100 text-yellow-700" :
-                                        order.status === "Processing" ? "bg-blue-100 text-blue-700" :
-                                        "bg-green-100 text-green-700"
-                                    }`}>
-                                        {order.status}
-                                    </span>
-                                </div>
+                        {recentOrders.length === 0 ? (
+                            <div className="p-8 text-center">
+                                <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500">No recent orders</p>
                             </div>
-                        ))}
+                        ) : (
+                            recentOrders.map((order, index) => (
+                                <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                    <div>
+                                        <p className="font-bold">Order #{order.order_id}</p>
+                                        <p className="text-sm text-gray-500">
+                                            {order.firstname && order.lastname 
+                                                ? `${order.firstname} ${order.lastname}`
+                                                : "Guest Customer"
+                                            }
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {formatDate(order.order_date)}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-red-600">
+                                            Rs. {Number(order.total).toLocaleString()}
+                                        </p>
+                                        <span className={`text-xs px-2 py-1 font-bold capitalize ${getStatusStyle(order.status)}`}>
+                                            {order.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -388,29 +495,39 @@ function AdminDashboard() {
                         </Link>
                     </div>
                     <div className="divide-y divide-gray-100">
-                        {[
-                            { name: "Nike Air Max 270", size: "42", stock: 2 },
-                            { name: "Adidas Ultraboost", size: "40", stock: 3 },
-                            { name: "Puma RS-X", size: "41", stock: 1 },
-                            { name: "New Balance 574", size: "43", stock: 4 },
-                        ].map((product, index) => (
-                            <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
-                                        <Package className="w-6 h-6 text-gray-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-sm">{product.name}</p>
-                                        <p className="text-xs text-gray-500">Size: {product.size}</p>
-                                    </div>
-                                </div>
-                                <span className={`text-sm px-3 py-1 font-black ${
-                                    product.stock <= 2 ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"
-                                }`}>
-                                    {product.stock} left
-                                </span>
+                        {lowStockProducts.length === 0 ? (
+                            <div className="p-8 text-center">
+                                <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500">No low stock products</p>
                             </div>
-                        ))}
+                        ) : (
+                            lowStockProducts.map((product, index) => (
+                                <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                            {product.image ? (
+                                                <img 
+                                                    src={product.image} 
+                                                    alt={product.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <Package className="w-6 h-6 text-gray-400" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm line-clamp-1">{product.name}</p>
+                                            <p className="text-xs text-gray-500">Size: {product.size_value}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-sm px-3 py-1 font-black ${
+                                        product.stock <= 2 ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"
+                                    }`}>
+                                        {product.stock} left
+                                    </span>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

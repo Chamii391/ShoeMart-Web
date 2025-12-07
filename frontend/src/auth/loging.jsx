@@ -26,6 +26,7 @@ export default function Login() {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem("userRole", response.data.role);
       localStorage.setItem("UserId", response.data.userid);
+      localStorage.setItem("username", response.data.username);
 
       if (response.data.role === "admin") {
         navigate("/admin-page");

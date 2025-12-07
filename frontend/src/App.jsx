@@ -14,6 +14,8 @@ import CartPage from './pages/cartPage';
 import ClientPage from './clients/clientPage';
 import Checkout from './pages/checkout';
 import DeliveryPage from './delivery/deliverypage';
+import NewProducts from './pages/newproducts';
+
 
 
 
@@ -39,6 +41,8 @@ function App() {
           <Route path="/overview/:id" element={<ProductOverview />} /> 
           <Route path="/cart" element={<CartPage/>} /> 
           <Route path="/checkout" element={<Checkout/>} /> 
+           <Route path="/new-arrival" element={<NewProducts />} />
+       
 
 
 
