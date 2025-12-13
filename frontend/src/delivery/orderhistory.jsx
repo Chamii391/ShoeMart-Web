@@ -5,7 +5,6 @@ import {
     Package, 
     Eye, 
     X, 
-    Truck, 
     CheckCircle, 
     Phone,
     MapPin,
@@ -16,79 +15,134 @@ import {
     Calendar,
     User,
     AlertCircle,
-    TrendingUp
+    TrendingUp,
+    Clock,
+    Filter,
+    History
 } from "lucide-react";
 
-export default function DeliveryOrder() {
+const TIME_PERIODS = [
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+    { value: "3months", label: "Last 3 Months" },
+    { value: "all", label: "All Time" }
+];
+
+export default function OrderHistory() {
     const [orders, setOrders] = useState([]);
+    const [filteredOrders, setFilteredOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
-    const [completingId, setCompletingId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [timePeriod, setTimePeriod] = useState("all");
     const itemsPerPage = 8;
 
-    // Load Orders
     useEffect(() => {
         loadOrders();
     }, []);
+
+    useEffect(() => {
+        filterOrdersByPeriod();
+    }, [timePeriod, orders]);
 
     async function loadOrders() {
         setLoading(true);
         try {
             const token = localStorage.getItem("token");
             const res = await axios.get(
-                "http://localhost:3000/api/orders/delivry_orders",
+                "http://localhost:3000/api/orders/completed-orders",
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            
-            // Filter only delivering orders
-            const deliveringOrders = res.data.filter(order => order.status === "delivering");
-            setOrders(deliveringOrders);
+            setOrders(res.data);
+            setFilteredOrders(res.data);
         } catch (err) {
-            toast.error("Failed to load orders");
+            toast.error("Failed to load order history");
             console.log(err);
         } finally {
             setLoading(false);
         }
     }
 
-    // Complete Order
-    async function acceptOrder(orderId) {
-        setCompletingId(orderId);
-        try {
-            const token = localStorage.getItem("token");
-            await axios.put(
-                `http://localhost:3000/api/orders/complete_order/${orderId}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Order marked as completed");
-            loadOrders();
+    function filterOrdersByPeriod() {
+        const now = new Date();
+        let filtered = [...orders];
 
-            if (selectedOrder?.order_id === orderId) {
-                setSelectedOrder(null);
+        switch(timePeriod) {
+            case "today": {
+                filtered = orders.filter(order => {
+                    const orderDate = new Date(order.order_date);
+                    return orderDate.toDateString() === now.toDateString();
+                });
+                break;
             }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "Error updating order");
-        } finally {
-            setCompletingId(null);
+            
+            case "week": {
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                filtered = orders.filter(order => {
+                    const orderDate = new Date(order.order_date);
+                    return orderDate >= weekAgo;
+                });
+                break;
+            }
+            
+            case "month": {
+                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                filtered = orders.filter(order => {
+                    const orderDate = new Date(order.order_date);
+                    return orderDate >= monthAgo;
+                });
+                break;
+            }
+            
+            case "3months": {
+                const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                filtered = orders.filter(order => {
+                    const orderDate = new Date(order.order_date);
+                    return orderDate >= threeMonthsAgo;
+                });
+                break;
+            }
+            
+            case "all":
+            default: {
+                filtered = orders;
+                break;
+            }
         }
+
+        setFilteredOrders(filtered);
+        setCurrentPage(1);
     }
 
-    // Helper
-    const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-US', { 
-        month: 'short', day: 'numeric', year: 'numeric' 
-    }) : "N/A";
+    const formatDate = (date) => {
+        if (!date) return "N/A";
+        return new Date(date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+    };
 
-    const formatTime = (date) => date ? new Date(date).toLocaleTimeString('en-US', { 
-        hour: '2-digit', minute: '2-digit'
-    }) : "";
+    const formatTime = (date) => {
+        if (!date) return "";
+        return new Date(date).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
+    };
 
     const formatCurrency = (amount) => `Rs. ${Number(amount).toLocaleString()}`;
 
+    // Calculate stats
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + Number(order.total), 0);
+    const averageOrderValue = filteredOrders.length > 0 
+        ? totalRevenue / filteredOrders.length 
+        : 0;
+
     // Pagination
-    const totalPages = Math.ceil(orders.length / itemsPerPage);
-    const paginatedOrders = orders.slice(
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+    const paginatedOrders = filteredOrders.slice(
         (currentPage - 1) * itemsPerPage, 
         currentPage * itemsPerPage
     );
@@ -97,63 +151,101 @@ export default function DeliveryOrder() {
         <div className="h-full flex flex-col overflow-hidden bg-gray-50">
 
             {/* ============ HEADER ============ */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-black to-gray-900 px-4 sm:px-6 py-4 border-b-4 border-red-600">
+            <div className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-700 px-4 sm:px-6 py-4 border-b-4 border-black">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
-                            <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg flex items-center justify-center shadow-lg">
+                            <History className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-black text-white">ACTIVE DELIVERIES</h1>
-                            <p className="text-xs sm:text-sm text-gray-400">
-                                {loading ? "Loading..." : `${orders.length} ${orders.length === 1 ? 'order' : 'orders'} in transit`}
+                            <h1 className="text-xl sm:text-2xl font-black text-white">ORDER HISTORY</h1>
+                            <p className="text-xs sm:text-sm text-red-100">
+                                {loading ? "Loading..." : `${filteredOrders.length} completed ${filteredOrders.length === 1 ? 'delivery' : 'deliveries'}`}
                             </p>
                         </div>
                     </div>
-                    <button 
-                        onClick={loadOrders}
-                        disabled={loading}
-                        className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white flex items-center justify-center transition-all disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={loadOrders}
+                            disabled={loading}
+                            className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg text-white flex items-center justify-center transition-all disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* ============ STATS BAR ============ */}
             <div className="flex-shrink-0 bg-white border-b-2 border-gray-200 px-4 sm:px-6 py-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Active Deliveries */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    {/* Total Completed */}
                     <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border-2 border-red-200 hover:border-red-600 transition-all">
                         <div className="flex items-center justify-between mb-2">
-                            <Truck className="w-8 h-8 text-red-600" />
+                            <CheckCircle className="w-8 h-8 text-red-600" />
                             <span className="text-3xl font-black text-red-900">
-                                {loading ? "-" : orders.length}
+                                {loading ? "-" : filteredOrders.length}
                             </span>
                         </div>
-                        <p className="text-xs font-bold text-red-700 uppercase">Active Deliveries</p>
+                        <p className="text-xs font-bold text-red-700 uppercase">Completed Orders</p>
                     </div>
 
-                    {/* Pending Completion */}
+                    {/* Total Revenue */}
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200 hover:border-black transition-all">
                         <div className="flex items-center justify-between mb-2">
-                            <Package className="w-8 h-8 text-black" />
-                            <span className="text-3xl font-black text-black">
-                                {loading ? "-" : orders.length}
+                            <TrendingUp className="w-8 h-8 text-black" />
+                            <span className="text-2xl font-black text-black">
+                                {loading ? "-" : `₨${(totalRevenue / 1000).toFixed(1)}k`}
                             </span>
                         </div>
-                        <p className="text-xs font-bold text-gray-700 uppercase">Pending Completion</p>
+                        <p className="text-xs font-bold text-gray-700 uppercase">Total Revenue</p>
                     </div>
 
-                    {/* Total Value */}
+                    {/* Average Order Value */}
                     <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border-2 border-red-200 hover:border-red-600 transition-all">
                         <div className="flex items-center justify-between mb-2">
-                            <TrendingUp className="w-8 h-8 text-red-600" />
+                            <Package className="w-8 h-8 text-red-600" />
                             <span className="text-2xl font-black text-red-900">
-                                {loading ? "-" : `₨${((orders.reduce((sum, o) => sum + Number(o.total), 0)) / 1000).toFixed(1)}k`}
+                                {loading ? "-" : formatCurrency(averageOrderValue).replace("Rs. ", "₨")}
                             </span>
                         </div>
-                        <p className="text-xs font-bold text-red-700 uppercase">Total Value</p>
+                        <p className="text-xs font-bold text-red-700 uppercase">Avg Order Value</p>
+                    </div>
+
+                    {/* Time Period */}
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200 hover:border-black transition-all">
+                        <div className="flex items-center justify-between mb-2">
+                            <Clock className="w-8 h-8 text-black" />
+                            <span className="text-lg font-black text-black capitalize">
+                                {TIME_PERIODS.find(p => p.value === timePeriod)?.label || "All"}
+                            </span>
+                        </div>
+                        <p className="text-xs font-bold text-gray-700 uppercase">Time Period</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ============ FILTERS ============ */}
+            <div className="flex-shrink-0 bg-white border-b-2 border-gray-200 px-4 sm:px-6 py-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-5 h-5 text-red-600" />
+                        <span className="text-sm font-bold text-gray-900">Filter by:</span>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                        {TIME_PERIODS.map((period) => (
+                            <button
+                                key={period.value}
+                                onClick={() => setTimePeriod(period.value)}
+                                className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap transition-all ${
+                                    timePeriod === period.value
+                                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                            >
+                                {period.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -166,20 +258,31 @@ export default function DeliveryOrder() {
                     <div className="h-full flex items-center justify-center">
                         <div className="text-center">
                             <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
-                            <p className="text-gray-600 font-semibold">Loading deliveries...</p>
+                            <p className="text-gray-600 font-semibold">Loading order history...</p>
                         </div>
                     </div>
                 
                 /* Empty State */
-                ) : orders.length === 0 ? (
+                ) : filteredOrders.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-6">
                         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                            <Truck className="w-10 h-10 text-red-600" />
+                            <CheckCircle className="w-10 h-10 text-red-600" />
                         </div>
-                        <h3 className="font-black text-xl mb-2 text-gray-900">All Caught Up!</h3>
-                        <p className="text-gray-500 text-center max-w-sm">
-                            No active deliveries at the moment. Check back soon for new orders.
+                        <h3 className="font-black text-xl mb-2 text-gray-900">No Orders Found</h3>
+                        <p className="text-gray-500 text-center max-w-sm mb-4">
+                            {timePeriod === "all" 
+                                ? "No completed orders yet"
+                                : `No completed orders in ${TIME_PERIODS.find(p => p.value === timePeriod)?.label.toLowerCase()}`
+                            }
                         </p>
+                        {timePeriod !== "all" && (
+                            <button 
+                                onClick={() => setTimePeriod("all")}
+                                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-bold rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-lg"
+                            >
+                                View All Orders
+                            </button>
+                        )}
                     </div>
                 
                 /* Orders List */
@@ -189,11 +292,12 @@ export default function DeliveryOrder() {
                         {/* Table Header - Desktop */}
                         <div className="flex-shrink-0 bg-gray-50 border-b-2 border-gray-200 px-4 py-3 hidden sm:grid grid-cols-12 gap-4 text-xs font-bold text-gray-600 uppercase">
                             <div className="col-span-1">Order ID</div>
+                            <div className="col-span-2">Date & Time</div>
                             <div className="col-span-3">Customer</div>
-                            <div className="col-span-3">Delivery Address</div>
+                            <div className="col-span-2">Address</div>
                             <div className="col-span-2">Amount</div>
                             <div className="col-span-1">Items</div>
-                            <div className="col-span-2 text-center">Actions</div>
+                            <div className="col-span-1 text-center">Action</div>
                         </div>
 
                         {/* Orders */}
@@ -211,54 +315,39 @@ export default function DeliveryOrder() {
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="font-black text-gray-900">#{order.order_id}</span>
-                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                                                        🚚 Delivering
+                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full flex items-center gap-1 border border-red-200">
+                                                        <CheckCircle className="w-3 h-3" />
+                                                        Completed
                                                     </span>
                                                 </div>
-                                                <p className="font-bold text-sm">{order.customer_name}</p>
-                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                                    <Phone className="w-3 h-3" />
-                                                    {order.customer_phone}
+                                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {formatDate(order.order_date)} • {formatTime(order.order_date)}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="bg-gray-50 rounded-lg p-3 mb-3 border border-gray-200">
-                                            <p className="text-xs text-gray-600 flex items-start gap-2">
-                                                <MapPin className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                                                {order.customer_address}
+                                        <div className="mb-3">
+                                            <p className="font-bold text-sm">{order.customer_name}</p>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                                <Phone className="w-3 h-3" />
+                                                {order.customer_phone}
                                             </p>
                                         </div>
 
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs text-gray-500">Collection Amount</p>
+                                                <p className="text-xs text-gray-500">Total Amount</p>
                                                 <p className="font-black text-lg text-red-600">
                                                     {formatCurrency(order.total)}
                                                 </p>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setSelectedOrder(order)}
-                                                    className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-all shadow-md"
-                                                >
-                                                    View
-                                                </button>
-                                                <button
-                                                    onClick={() => acceptOrder(order.order_id)}
-                                                    disabled={completingId === order.order_id}
-                                                    className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 disabled:opacity-50 shadow-md"
-                                                >
-                                                    {completingId === order.order_id ? (
-                                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            <CheckCircle className="w-3 h-3" />
-                                                            Complete
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => setSelectedOrder(order)}
+                                                className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-md"
+                                            >
+                                                View
+                                            </button>
                                         </div>
                                     </div>
 
@@ -267,6 +356,10 @@ export default function DeliveryOrder() {
                                         <div className="col-span-1">
                                             <span className="font-black text-gray-900">#{order.order_id}</span>
                                         </div>
+                                        <div className="col-span-2">
+                                            <p className="text-sm font-semibold text-gray-900">{formatDate(order.order_date)}</p>
+                                            <p className="text-xs text-gray-500">{formatTime(order.order_date)}</p>
+                                        </div>
                                         <div className="col-span-3">
                                             <p className="font-bold text-sm text-gray-900">{order.customer_name}</p>
                                             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -274,9 +367,8 @@ export default function DeliveryOrder() {
                                                 {order.customer_phone}
                                             </p>
                                         </div>
-                                        <div className="col-span-3">
-                                            <p className="text-sm text-gray-600 line-clamp-2 flex items-start gap-1">
-                                                <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+                                        <div className="col-span-2">
+                                            <p className="text-sm text-gray-600 line-clamp-2">
                                                 {order.customer_address}
                                             </p>
                                         </div>
@@ -290,26 +382,13 @@ export default function DeliveryOrder() {
                                                 {order.items?.length || 0}
                                             </span>
                                         </div>
-                                        <div className="col-span-2 flex gap-2 justify-center">
+                                        <div className="col-span-1 flex justify-center">
                                             <button
                                                 onClick={() => setSelectedOrder(order)}
-                                                className="px-3 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-sm font-bold rounded-lg transition-all"
+                                                className="p-2 bg-gray-100 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                title="View Details"
                                             >
-                                                View
-                                            </button>
-                                            <button
-                                                onClick={() => acceptOrder(order.order_id)}
-                                                disabled={completingId === order.order_id}
-                                                className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-bold rounded-lg flex items-center gap-1 transition-all disabled:opacity-50 shadow-md"
-                                            >
-                                                {completingId === order.order_id ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <>
-                                                        <CheckCircle className="w-4 h-4" />
-                                                        Complete
-                                                    </>
-                                                )}
+                                                <Eye className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -322,8 +401,8 @@ export default function DeliveryOrder() {
                             <div className="flex-shrink-0 border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between bg-gray-50">
                                 <p className="text-sm text-gray-600">
                                     Showing <span className="font-bold text-black">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                                    <span className="font-bold text-black">{Math.min(currentPage * itemsPerPage, orders.length)}</span> of{" "}
-                                    <span className="font-bold text-black">{orders.length}</span> deliveries
+                                    <span className="font-bold text-black">{Math.min(currentPage * itemsPerPage, filteredOrders.length)}</span> of{" "}
+                                    <span className="font-bold text-black">{filteredOrders.length}</span> orders
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -355,8 +434,6 @@ export default function DeliveryOrder() {
                 <OrderDetailModal 
                     order={selectedOrder}
                     onClose={() => setSelectedOrder(null)}
-                    onComplete={acceptOrder}
-                    completingId={completingId}
                     formatDate={formatDate}
                     formatTime={formatTime}
                     formatCurrency={formatCurrency}
@@ -368,7 +445,7 @@ export default function DeliveryOrder() {
 
 
 // ============ ORDER DETAIL MODAL ============
-function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate, formatTime, formatCurrency }) {
+function OrderDetailModal({ order, onClose, formatDate, formatTime, formatCurrency }) {
 
     return (
         <>
@@ -387,14 +464,14 @@ function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center shadow-lg">
-                                    <Truck className="w-6 h-6" />
+                                    <CheckCircle className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black">ORDER #{order.order_id}</h2>
                                     <div className="flex items-center gap-3 text-sm text-red-100 mt-1">
-                                        <span>{formatDate(order.created_at)}</span>
+                                        <span>{formatDate(order.order_date)}</span>
                                         <span>•</span>
-                                        <span>{formatTime(order.created_at)}</span>
+                                        <span>{formatTime(order.order_date)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -407,8 +484,8 @@ function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate
                         </div>
 
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 rounded-lg font-bold">
-                            <Truck className="w-5 h-5" />
-                            Out for Delivery
+                            <CheckCircle className="w-5 h-5" />
+                            Delivered Successfully
                         </div>
                     </div>
 
@@ -419,26 +496,39 @@ function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate
                         <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 border-2 border-gray-200">
                             <h4 className="font-bold text-sm text-gray-900 uppercase mb-4 flex items-center gap-2">
                                 <User className="w-4 h-4 text-red-600" />
-                                Delivery Information
+                                Customer Information
                             </h4>
-                            <div className="space-y-3">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-xs text-gray-500 mb-1 font-semibold">Customer Name</p>
+                                    <p className="text-xs text-gray-500 mb-1 font-semibold">Name</p>
                                     <p className="font-bold text-gray-900">{order.customer_name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 mb-1 font-semibold">Phone Number</p>
-                                    <p className="font-bold text-gray-900 flex items-center gap-2">
-                                        <Phone className="w-4 h-4 text-gray-400" />
-                                        {order.customer_phone}
-                                    </p>
+                                    <p className="text-xs text-gray-500 mb-1 font-semibold">Phone</p>
+                                    <p className="font-bold text-gray-900">{order.customer_phone}</p>
                                 </div>
-                                <div>
+                                <div className="sm:col-span-2">
                                     <p className="text-xs text-gray-500 mb-1 font-semibold">Delivery Address</p>
-                                    <p className="font-bold text-gray-900 flex items-start gap-2">
-                                        <MapPin className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                                        {order.customer_address}
-                                    </p>
+                                    <p className="font-bold text-gray-900">{order.customer_address}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Delivery Timeline */}
+                        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+                            <h4 className="font-bold text-sm text-red-700 uppercase mb-4 flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                Delivery Timeline
+                            </h4>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center shadow-md">
+                                        <CheckCircle className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900">Order Completed</p>
+                                        <p className="text-xs text-gray-500 font-semibold">{formatDate(order.order_date)} • {formatTime(order.order_date)}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -480,10 +570,10 @@ function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate
 
                         {/* Payment Summary */}
                         <div className="bg-gradient-to-br from-black to-gray-900 text-white rounded-xl p-5 border-4 border-red-600">
-                            <h4 className="font-black text-sm uppercase mb-4">Payment Collection</h4>
+                            <h4 className="font-black text-sm uppercase mb-4">Payment Summary</h4>
                             <div className="space-y-3">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Order Total</span>
+                                    <span className="text-gray-400">Subtotal</span>
                                     <span className="font-bold">{formatCurrency(order.total)}</span>
                                 </div>
                                 <div className="flex justify-between">
@@ -491,40 +581,23 @@ function OrderDetailModal({ order, onClose, onComplete, completingId, formatDate
                                     <span className="text-red-400 font-bold">FREE</span>
                                 </div>
                                 <div className="border-t-2 border-red-600/50 pt-3 flex justify-between items-center">
-                                    <span className="text-lg font-black">Collect Cash</span>
+                                    <span className="text-lg font-black">Total Paid</span>
                                     <span className="text-2xl font-black text-red-500">
                                         {formatCurrency(order.total)}
                                     </span>
                                 </div>
                             </div>
                             <div className="mt-4 pt-4 border-t-2 border-red-600/50">
-                                <p className="text-xs text-gray-400">💰 Cash on Delivery - Collect exact amount</p>
+                                <p className="text-xs text-gray-400">✓ Payment collected via Cash on Delivery</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="border-t-2 border-gray-200 p-4 bg-gray-50 flex gap-3">
-                        <button
-                            onClick={() => onComplete(order.order_id)}
-                            disabled={completingId === order.order_id}
-                            className="flex-1 h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg"
-                        >
-                            {completingId === order.order_id ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    COMPLETING...
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle className="w-5 h-5" />
-                                    MARK AS DELIVERED
-                                </>
-                            )}
-                        </button>
+                    <div className="border-t-2 border-gray-200 p-4 bg-gray-50">
                         <button
                             onClick={onClose}
-                            className="px-6 h-12 bg-gradient-to-r from-black to-gray-900 hover:from-gray-900 hover:to-black text-white font-black rounded-lg transition-all shadow-lg"
+                            className="w-full h-12 bg-gradient-to-r from-black to-gray-900 hover:from-gray-900 hover:to-black text-white font-black rounded-lg transition-all shadow-lg"
                         >
                             CLOSE
                         </button>

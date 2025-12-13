@@ -923,3 +923,129 @@ export async function Get_User_Order_Stats(req, res) {
     });
   }
 }
+
+
+export async function Get_Order_Summary(req, res) {
+  try {
+    // Count delivering & completed
+    const [countRows] = await pool.query(`
+      SELECT 
+        SUM(status = 'delivering') AS delivering_count,
+        SUM(status = 'completed') AS completed_count
+      FROM orders
+    `);
+
+    // Get recent last 4 delivered or completed
+    const [recentRows] = await pool.query(`
+      SELECT 
+        order_id,
+        customer_name,
+        total,
+        status,
+        order_date
+      FROM orders
+      WHERE status IN ('delivering', 'completed')
+      ORDER BY order_date DESC
+      LIMIT 4
+    `);
+
+    // Format customer name → firstname + lastname
+    const recentOrders = recentRows.map(row => {
+      const parts = row.customer_name?.split(" ") || [];
+      return {
+        order_id: row.order_id,
+        firstname: parts[0] || "",
+        lastname: parts.slice(1).join(" ") || "",
+        total: row.total,
+        status: row.status,
+        order_date: row.order_date
+      };
+    });
+
+    // Send combined response
+    return res.status(200).json({
+      delivering_count: countRows[0].delivering_count,
+      completed_count: countRows[0].completed_count,
+      recent_orders: recentOrders
+    });
+
+  } catch (error) {
+    console.error("Error fetching order summary:", error);
+    return res.status(500).json({
+      message: "Error fetching order summary",
+      error: error.message
+    });
+  }
+}
+
+
+export async function View_Completed_Orders(req, res) {
+  try {
+    const sql = `
+      SELECT
+        o.order_id,
+        o.user_id,
+        o.customer_name,
+        o.customer_phone,
+        o.customer_address,
+        o.status,
+        o.total,
+        o.order_date,
+        
+        oi.order_item_id,
+        oi.product_id,
+        oi.product_name,
+        oi.price,
+        oi.quantity,
+        oi.line_total,
+        
+        ps.size_value,
+        p.images
+      FROM orders o
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      WHERE o.status = 'completed'
+      ORDER BY o.order_date DESC, o.order_id DESC
+    `;
+
+    const [rows] = await pool.query(sql);
+
+    const map = new Map();
+
+    for (const r of rows) {
+      if (!map.has(r.order_id)) {
+        map.set(r.order_id, {
+          order_id: r.order_id,
+          user_id: r.user_id,
+          customer_name: r.customer_name,
+          customer_phone: r.customer_phone,
+          customer_address: r.customer_address,
+          status: r.status,
+          total: r.total,
+          order_date: r.order_date,
+          items: []
+        });
+      }
+
+      if (r.order_item_id) {
+        const images = r.images ? JSON.parse(r.images) : [];
+
+        map.get(r.order_id).items.push({
+          product_id: r.product_id,
+          product_name: r.product_name,
+          size_value: r.size_value,
+          quantity: r.quantity,
+          price: r.price,
+          line_total: r.line_total,
+          image: images[0] || null
+        });
+      }
+    }
+
+    return res.status(200).json([...map.values()]);
+  } catch (err) {
+    console.error("Error loading completed orders:", err);
+    return res.status(500).json({ message: "Error loading completed orders" });
+  }
+}
