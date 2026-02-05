@@ -5,6 +5,7 @@ import Footer from "../components/footer";
 import ProductCard from "../components/productCart";
 import { Sparkles, Package, Loader2, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Snowfall from "../components/snow";
 
 export default function NewProducts() {
     const [products, setProducts] = useState([]);
@@ -30,6 +31,7 @@ export default function NewProducts() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
+            <Snowfall flakes={60}/>
             
             {/* Hero Section */}
             <section className="bg-black border-b-4 border-red-600">

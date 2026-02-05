@@ -3,6 +3,7 @@ import { MapPin, Phone, Mail, Clock, Send, Facebook, Instagram, Twitter, Message
 import Header from '../components/header';
 import Footer from '../components/footer';
 import toast from 'react-hot-toast';
+import Snowfall from '../components/snow';
 
 export default function Contact() {
     const [formData, setFormData] = useState({
@@ -46,6 +47,7 @@ export default function Contact() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
+            <Snowfall flakes={60} />
 
             {/* Hero Section */}
             <section className="relative bg-black text-white py-16 overflow-hidden">

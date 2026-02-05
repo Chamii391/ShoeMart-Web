@@ -2,11 +2,13 @@ import React from 'react';
 import { Award, Users, ShoppingBag, Heart, Target, Eye, Truck, Shield, Star, CheckCircle } from 'lucide-react';
 import Header from '../components/header';
 import Footer from '../components/footer';
+import Snowfall from '../components/snow';
 
 export default function About() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
+            <Snowfall flakes={60} />
 
             {/* Hero Section */}
             <section className="relative bg-black text-white py-20 overflow-hidden">

@@ -11,6 +11,7 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, X, Tag, Lock } from "luci
 import toast from "react-hot-toast";
 import Header from "../components/header";
 import Footer from "../components/footer";
+import Snowfall from "../components/snow";
 
 export default function CartPage() {
     const [cart, setCart] = useState([]);
@@ -101,6 +102,7 @@ export default function CartPage() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
+           <Snowfall flakes={60} />
 
             {/* Hero Section */}
             <section className="bg-black border-b-4 border-red-600">

@@ -12,7 +12,8 @@ import {
     Save,
     X,
     Info,
-    Loader2
+    Loader2,
+    Sparkles
 } from "lucide-react";
 import mediaUpload from "../utils/mediaUpload";
 
@@ -31,6 +32,7 @@ export default function AddProductPage() {
     const [previewImages, setPreviewImages] = useState([]);
 
     const [loading, setLoading] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -67,6 +69,54 @@ export default function AddProductPage() {
         setImages(newImages);
         setPreviewImages(prev => prev.filter((_, i) => i !== index));
     };
+
+    // AI Content Generation
+    async function generateAIContent() {
+        const token = localStorage.getItem("token");
+        if (!token) return toast.error("Unauthorized");
+
+        if (!name || !mainCategory || !price) {
+            return toast.error("Fill Name, Category, and Price first!");
+        }
+
+        setAiLoading(true);
+
+        try {
+            // Call Node backend (Node -> Flask -> Groq)
+            const [altRes, descRes] = await Promise.all([
+                axios.post(
+                    "http://localhost:3000/api/products/ai-generate_altnames",
+                    {
+                        name,
+                        main_category: mainCategory,
+                        color,
+                        country,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                ),
+                axios.post(
+                    "http://localhost:3000/api/products/ai-generate_description",
+                    {
+                        name,
+                        main_category: mainCategory,
+                        price: Number(price),
+                        color,
+                        country,
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                ),
+            ]);
+
+            setAltNames(altRes.data.altNames || "");
+            setDescription(descRes.data.description || "");
+            toast.success("AI generated altNames & description!");
+        } catch (err) {
+            toast.error(err.response?.data?.message || "AI generation failed");
+            console.error(err);
+        } finally {
+            setAiLoading(false);
+        }
+    }
 
     // Submit
     async function handleAddProduct(e) {
@@ -173,9 +223,9 @@ export default function AddProductPage() {
                         </Link>
                         <button
                             onClick={handleAddProduct}
-                            disabled={loading}
+                            disabled={loading || aiLoading}
                             className={`h-10 px-6 text-white text-sm font-bold flex items-center gap-2 transition-all ${
-                                loading 
+                                loading || aiLoading
                                     ? "bg-gray-600 cursor-not-allowed" 
                                     : "bg-red-600 hover:bg-red-700"
                             }`}
@@ -207,8 +257,37 @@ export default function AddProductPage() {
 
                                 {/* Basic Information */}
                                 <div className="bg-white border-2 border-gray-100">
-                                    <div className="px-6 py-4 border-b-2 border-gray-100">
+                                    <div className="px-6 py-4 border-b-2 border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                         <h2 className="font-black text-sm uppercase tracking-wide">Basic Information</h2>
+                                        
+                                        {/* AI Generate Button */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={generateAIContent}
+                                                disabled={aiLoading || loading}
+                                                className={`h-9 px-4 text-xs font-bold flex items-center gap-2 transition-all ${
+                                                    aiLoading || loading
+                                                        ? "bg-gray-400 cursor-not-allowed text-white" 
+                                                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                                                }`}
+                                            >
+                                                {aiLoading ? (
+                                                    <>
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        Generating...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Sparkles className="w-3.5 h-3.5" />
+                                                        AI Generate
+                                                    </>
+                                                )}
+                                            </button>
+                                            <span className="text-xs text-gray-400 hidden sm:inline">
+                                                Auto-fill alt names & description
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="p-6 space-y-5">
 
@@ -222,7 +301,8 @@ export default function AddProductPage() {
                                                 placeholder="Enter product name"
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
-                                                className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all"
+                                                disabled={loading || aiLoading}
+                                                className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             />
                                         </div>
 
@@ -230,13 +310,17 @@ export default function AddProductPage() {
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                                                 Alternative Names
+                                                {aiLoading && (
+                                                    <span className="ml-2 text-purple-600 animate-pulse">● AI generating...</span>
+                                                )}
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="Other names or keywords"
+                                                placeholder="Other names or keywords (or use AI generate)"
                                                 value={altNames}
                                                 onChange={(e) => setAltNames(e.target.value)}
-                                                className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all"
+                                                disabled={loading || aiLoading}
+                                                className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             />
                                         </div>
 
@@ -244,13 +328,17 @@ export default function AddProductPage() {
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                                                 Description
+                                                {aiLoading && (
+                                                    <span className="ml-2 text-purple-600 animate-pulse">● AI generating...</span>
+                                                )}
                                             </label>
                                             <textarea
-                                                placeholder="Enter product description"
+                                                placeholder="Enter product description (or use AI generate)"
                                                 rows={4}
                                                 value={description}
                                                 onChange={(e) => setDescription(e.target.value)}
-                                                className="w-full px-4 py-3 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all resize-none"
+                                                disabled={loading || aiLoading}
+                                                className="w-full px-4 py-3 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             />
                                         </div>
 
@@ -263,7 +351,8 @@ export default function AddProductPage() {
                                                 <select
                                                     value={mainCategory}
                                                     onChange={(e) => setMainCategory(e.target.value)}
-                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold bg-white cursor-pointer transition-all"
+                                                    disabled={loading || aiLoading}
+                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold bg-white cursor-pointer transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 >
                                                     <option value="">Select Category</option>
                                                     <option value="men">Men</option>
@@ -281,7 +370,8 @@ export default function AddProductPage() {
                                                     placeholder="0.00"
                                                     value={price}
                                                     onChange={(e) => setPrice(e.target.value)}
-                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold transition-all"
+                                                    disabled={loading || aiLoading}
+                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 />
                                             </div>
                                         </div>
@@ -297,7 +387,8 @@ export default function AddProductPage() {
                                                     placeholder="e.g., Black, White"
                                                     value={color}
                                                     onChange={(e) => setColor(e.target.value)}
-                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all"
+                                                    disabled={loading || aiLoading}
+                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 />
                                             </div>
 
@@ -310,8 +401,23 @@ export default function AddProductPage() {
                                                     placeholder="e.g., Vietnam"
                                                     value={country}
                                                     onChange={(e) => setCountry(e.target.value)}
-                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all"
+                                                    disabled={loading || aiLoading}
+                                                    className="w-full h-12 px-4 border-2 border-gray-200 focus:border-black outline-none font-medium transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 />
+                                            </div>
+                                        </div>
+
+                                        {/* AI Info Box */}
+                                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 p-4">
+                                            <div className="flex items-start gap-3">
+                                                <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-bold text-purple-900">AI-Powered Content</p>
+                                                    <p className="text-xs text-purple-700 mt-1">
+                                                        Fill in Name, Category, and Price, then click "AI Generate" to auto-create 
+                                                        alternative names and product description. You can edit the generated content.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -326,7 +432,12 @@ export default function AddProductPage() {
                                         <button
                                             type="button"
                                             onClick={addSizeRow}
-                                            className="h-8 px-3 bg-black hover:bg-red-600 text-white text-xs font-bold flex items-center gap-1 transition-all"
+                                            disabled={loading || aiLoading}
+                                            className={`h-8 px-3 text-white text-xs font-bold flex items-center gap-1 transition-all ${
+                                                loading || aiLoading
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-black hover:bg-red-600"
+                                            }`}
                                         >
                                             <Plus className="w-3 h-3" />
                                             ADD SIZE
@@ -357,7 +468,8 @@ export default function AddProductPage() {
                                                             onChange={(e) =>
                                                                 updateSizeField(index, "size_value", e.target.value)
                                                             }
-                                                            className="w-full h-11 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold text-center transition-all"
+                                                            disabled={loading || aiLoading}
+                                                            className="w-full h-11 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold text-center transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                         />
                                                     </div>
                                                     <div className="col-span-5">
@@ -368,7 +480,8 @@ export default function AddProductPage() {
                                                             onChange={(e) =>
                                                                 updateSizeField(index, "stock", e.target.value)
                                                             }
-                                                            className="w-full h-11 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold text-center transition-all"
+                                                            disabled={loading || aiLoading}
+                                                            className="w-full h-11 px-4 border-2 border-gray-200 focus:border-black outline-none font-bold text-center transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                         />
                                                     </div>
                                                     <div className="col-span-2 flex justify-center">
@@ -376,7 +489,12 @@ export default function AddProductPage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeSizeRow(index)}
-                                                                className="w-11 h-11 bg-gray-100 hover:bg-red-600 hover:text-white text-gray-500 flex items-center justify-center transition-all"
+                                                                disabled={loading || aiLoading}
+                                                                className={`w-11 h-11 flex items-center justify-center transition-all ${
+                                                                    loading || aiLoading
+                                                                        ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                                                                        : "bg-gray-100 hover:bg-red-600 hover:text-white text-gray-500"
+                                                                }`}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
@@ -410,12 +528,26 @@ export default function AddProductPage() {
                                     <div className="p-6">
                                         
                                         {/* Upload Area */}
-                                        <label className="block cursor-pointer group">
-                                            <div className="border-2 border-dashed border-gray-300 group-hover:border-red-600 p-8 text-center transition-all">
-                                                <div className="w-16 h-16 bg-gray-100 group-hover:bg-red-50 flex items-center justify-center mx-auto mb-4 transition-all">
-                                                    <Upload className="w-8 h-8 text-gray-400 group-hover:text-red-600 transition-all" />
+                                        <label className={`block ${loading || aiLoading ? 'cursor-not-allowed' : 'cursor-pointer'} group`}>
+                                            <div className={`border-2 border-dashed p-8 text-center transition-all ${
+                                                loading || aiLoading 
+                                                    ? 'border-gray-200 bg-gray-50' 
+                                                    : 'border-gray-300 group-hover:border-red-600'
+                                            }`}>
+                                                <div className={`w-16 h-16 flex items-center justify-center mx-auto mb-4 transition-all ${
+                                                    loading || aiLoading
+                                                        ? 'bg-gray-100'
+                                                        : 'bg-gray-100 group-hover:bg-red-50'
+                                                }`}>
+                                                    <Upload className={`w-8 h-8 transition-all ${
+                                                        loading || aiLoading
+                                                            ? 'text-gray-300'
+                                                            : 'text-gray-400 group-hover:text-red-600'
+                                                    }`} />
                                                 </div>
-                                                <p className="font-bold text-sm mb-1">Click to upload</p>
+                                                <p className={`font-bold text-sm mb-1 ${loading || aiLoading ? 'text-gray-400' : ''}`}>
+                                                    Click to upload
+                                                </p>
                                                 <p className="text-xs text-gray-500">PNG, JPG up to 5MB each</p>
                                             </div>
                                             <input
@@ -423,6 +555,7 @@ export default function AddProductPage() {
                                                 multiple
                                                 accept="image/*"
                                                 className="hidden"
+                                                disabled={loading || aiLoading}
                                                 onChange={(e) => setImages(e.target.files)}
                                             />
                                         </label>
@@ -440,7 +573,12 @@ export default function AddProductPage() {
                                                             setImages([]);
                                                             setPreviewImages([]);
                                                         }}
-                                                        className="text-xs font-bold text-red-600 hover:text-red-700"
+                                                        disabled={loading || aiLoading}
+                                                        className={`text-xs font-bold ${
+                                                            loading || aiLoading
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-red-600 hover:text-red-700'
+                                                        }`}
                                                     >
                                                         Clear All
                                                     </button>
@@ -458,7 +596,12 @@ export default function AddProductPage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeImage(idx)}
-                                                                className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                                                                disabled={loading || aiLoading}
+                                                                className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center transition-all ${
+                                                                    loading || aiLoading
+                                                                        ? 'bg-gray-400 text-white opacity-50 cursor-not-allowed'
+                                                                        : 'bg-red-600 text-white opacity-0 group-hover:opacity-100'
+                                                                }`}
                                                             >
                                                                 <X className="w-3 h-3" />
                                                             </button>
@@ -503,6 +646,10 @@ export default function AddProductPage() {
                                             <span className="w-1.5 h-1.5 bg-red-600 mt-1.5 flex-shrink-0"></span>
                                             Set competitive pricing
                                         </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="w-1.5 h-1.5 bg-purple-500 mt-1.5 flex-shrink-0"></span>
+                                            <span className="text-purple-400">Use AI to generate descriptions</span>
+                                        </li>
                                     </ul>
                                 </div>
 
@@ -531,9 +678,9 @@ export default function AddProductPage() {
                             </Link>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || aiLoading}
                                 className={`flex-1 h-12 text-white font-bold flex items-center justify-center gap-2 transition-all ${
-                                    loading 
+                                    loading || aiLoading
                                         ? "bg-gray-400 cursor-not-allowed" 
                                         : "bg-red-600 hover:bg-red-700"
                                 }`}

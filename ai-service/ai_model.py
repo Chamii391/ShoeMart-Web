@@ -15,17 +15,22 @@ llm = ChatGroq(
 altname_prompt = PromptTemplate(
     input_variables=["name", "main_category", "color", "country"],
     template="""
-Generate 6 short, search-friendly alternate names (comma-separated only).
-Do not add explanations.
+You are generating SEO keywords for an online shoe store.
+Create 6-7 short alternate names / search keywords for this shoe.
+Rules:
+- Output ONLY one comma-separated line
+- No numbering, no quotes, no extra text
+- Mix: style keywords + use case + category words
+- Include category: {main_category} (men/women/child) naturally
 
 Product Name: {name}
-Main Category: {main_category}
 Color: {color}
 Country: {country}
 
 Alt Names:
 """
 )
+
 
 def generate_altnames(name, main_category, color="", country=""):
     chain = altname_prompt | llm
@@ -41,18 +46,27 @@ def generate_altnames(name, main_category, color="", country=""):
 description_prompt = PromptTemplate(
     input_variables=["name", "main_category", "price", "color", "country"],
     template="""
-Write a short product description (2–3 sentences) for an online shoe store.
-Friendly, simple English. No emojis.
+You are a copywriter for a modern online shoe store.
+Write a premium product description in 2–3 sentences.
+
+Rules:
+- Simple English, smooth and confident tone
+- Mention comfort + style
+- Mention the color naturally
+- DO NOT mention "AI", "prompt", or "database"
+- DO NOT add emojis
+- Keep it short and attractive
 
 Product Name: {name}
-Main Category: {main_category}
+Main Category: {main_category} (men/women/child)
 Color: {color}
 Country: {country}
-Price: {price}
+Price: Rs. {price}
 
 Description:
 """
 )
+
 
 def generate_description(name, main_category, price, color="", country=""):
     chain = description_prompt | llm

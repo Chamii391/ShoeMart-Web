@@ -6,6 +6,7 @@ import { clearCart } from "../utils/cart";
 import { MapPin, Phone, User, Lock, Truck, CreditCard, Check, ShoppingBag, ArrowLeft, Shield } from "lucide-react";
 import Header from "../components/header";
 import Footer from "../components/footer";
+import Snowfall from "../components/snow";
 
 export default function Checkout() {
     const navigate = useNavigate();
@@ -106,6 +107,7 @@ export default function Checkout() {
     return (
         <div className="min-h-screen bg-gray-50">
             <Header />
+            <Snowfall flakes={60}/>
 
             {/* Checkout Header */}
             <div className="bg-black">

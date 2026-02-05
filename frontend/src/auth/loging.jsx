@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import Snowfall from '../components/snow';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +45,8 @@ export default function Login() {
   }
 
   return (
+    <>
+    <Snowfall flakes={60} />
     <div className="h-screen w-full bg-black flex items-center justify-center p-4 relative overflow-hidden">
       
       {/* Background Decoration */}
@@ -146,5 +149,6 @@ export default function Login() {
         </p>
       </div>
     </div>
+    </>
   );
 }

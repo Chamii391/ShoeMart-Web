@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, Mail } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Mail, Snowflake } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import Snowfall from '../components/snow';
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +48,8 @@ export default function Register() {
   }
 
   return (
+    <>
+    <Snowfall flakes={60}/>
     <div className="min-h-screen w-full bg-black flex items-center justify-center p-4 relative overflow-hidden">
       
       {/* Background Decoration */}
@@ -207,5 +210,6 @@ export default function Register() {
         </p>
       </div>
     </div>
+    </>
   );
 }

@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, ShoppingCart, Menu, X, ChevronDown } from 'lucide-react';
+import { User, ShoppingCart, Menu, X } from 'lucide-react';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   
   const isActive = (path) => location.pathname === path;
   
-  const cartItemCount = 3; // Replace with actual cart count
   const userRole = localStorage.getItem("userRole");
 
   // Profile navigation function
@@ -69,49 +67,17 @@ const Header = () => {
                 }`}></span>
               </Link>
 
-              {/* Shop Dropdown */}
-              <div 
-                className="relative"
-                onMouseEnter={() => setIsShopDropdownOpen(true)}
-                onMouseLeave={() => setIsShopDropdownOpen(false)}
+              <Link
+                to="/products"
+                className={`px-4 py-2 text-sm font-bold tracking-wide transition-all duration-300 relative group ${
+                  isActive('/products') ? 'text-red-600' : 'text-black hover:text-red-600'
+                }`}
               >
-                <Link
-                  to="/products"
-                  className={`px-4 py-2 text-sm font-bold tracking-wide transition-all duration-300 relative group flex items-center ${
-                    isActive('/products') ? 'text-red-600' : 'text-black hover:text-red-600'
-                  }`}
-                >
-                  SHOP
-                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-300 ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
-                  <span className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-red-600 transition-all duration-300 ${
-                    isActive('/products') ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
-                </Link>
-                
-                {/* Shop Dropdown Menu */}
-                <div className={`absolute top-full left-0 w-56 bg-white shadow-xl border-t-2 border-red-600 transition-all duration-300 ${
-                  isShopDropdownOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                }`}>
-                  <div className="py-2">
-                    <Link to="/products?category=men" className="block px-4 py-3 text-sm font-medium text-black hover:bg-red-600 hover:text-white transition-colors">
-                      👞 Men's Shoes
-                    </Link>
-                    <Link to="/products?category=women" className="block px-4 py-3 text-sm font-medium text-black hover:bg-red-600 hover:text-white transition-colors">
-                      👠 Women's Shoes
-                    </Link>
-                    <Link to="/products?category=sports" className="block px-4 py-3 text-sm font-medium text-black hover:bg-red-600 hover:text-white transition-colors">
-                      👟 Sports & Running
-                    </Link>
-                    <Link to="/products?category=kids" className="block px-4 py-3 text-sm font-medium text-black hover:bg-red-600 hover:text-white transition-colors">
-                      🧒 Kids' Collection
-                    </Link>
-                    <div className="border-t border-gray-200 my-2"></div>
-                    <Link to="/products?sale=true" className="block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-600 hover:text-white transition-colors">
-                      🔥 SALE - Up to 50% Off
-                    </Link>
-                  </div>
-                </div>
-              </div>
+                SHOP
+                <span className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-red-600 transition-all duration-300 ${
+                  isActive('/products') ? 'w-full' : 'w-0 group-hover:w-full'
+                }`}></span>
+              </Link>
 
               <Link
                 to="/new-arrival"
@@ -165,14 +131,9 @@ const Header = () => {
               {/* 2. Cart */}
               <Link 
                 to="/cart" 
-                className="relative p-2 text-black hover:text-red-600 transition-all duration-300"
+                className="p-2 text-black hover:text-red-600 transition-all duration-300"
               >
                 <ShoppingCart className="w-6 h-6" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItemCount}
-                  </span>
-                )}
               </Link>
 
               {/* 3. Profile Icon - Using Button with onClick */}
@@ -190,14 +151,9 @@ const Header = () => {
               {/* Mobile Cart */}
               <Link 
                 to="/cart" 
-                className="relative p-2 text-black hover:text-red-600 transition-all duration-300"
+                className="p-2 text-black hover:text-red-600 transition-all duration-300"
               >
                 <ShoppingCart className="w-6 h-6" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItemCount}
-                  </span>
-                )}
               </Link>
 
               {/* Mobile Profile - Using Button with onClick */}
@@ -253,35 +209,7 @@ const Header = () => {
                   isActive('/products') ? 'bg-red-600 text-white' : 'text-black hover:bg-gray-100'
                 }`}
               >
-                👟 SHOP ALL
-              </Link>
-              <Link
-                to="/products?category=men"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-3 pl-8 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                Men's Shoes
-              </Link>
-              <Link
-                to="/products?category=women"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-3 pl-8 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                Women's Shoes
-              </Link>
-              <Link
-                to="/products?category=sports"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-3 pl-8 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                Sports & Running
-              </Link>
-              <Link
-                to="/products?category=kids"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-3 pl-8 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                Kids' Collection
+                👟 SHOP
               </Link>
               <Link
                 to="/new-arrival"

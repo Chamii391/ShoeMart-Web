@@ -4,7 +4,7 @@ import {
     ShoppingBag, RefreshCw, Search, ChevronLeft, ChevronRight,
     Loader2, AlertCircle, X, Clock, Truck, CheckCircle, XCircle,
     Phone, MapPin, ArrowRight, Calendar, Box, Receipt, Banknote,
-    Shield, Ban, Eye, Hash, User, CreditCard
+    Shield, Ban, Eye, Package
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -132,23 +132,33 @@ export default function UsersOrders() {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-gray-50">
 
-            {/* HEADER */}
-            <div className="flex-shrink-0 bg-black px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 flex items-center justify-center">
-                        <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            {/* ============ HEADER - FIXED ============ */}
+            <div className="flex-shrink-0 bg-black px-4 sm:px-6 py-3 sm:py-4">
+                <div className="flex items-center justify-between">
+                    
+                    {/* Left */}
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 flex items-center justify-center">
+                            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl font-black text-white">MY ORDERS</h1>
+                            <p className="text-xs text-gray-500 hidden sm:block">{orders.length} total orders</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-lg sm:text-xl font-black text-white">MY ORDERS</h1>
-                        <p className="text-xs text-gray-500 hidden sm:block">{orders.length} total orders</p>
-                    </div>
+
+                    {/* Right */}
+                    <button 
+                        onClick={loadOrders} 
+                        disabled={loading}
+                        className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                    </button>
                 </div>
-                <button onClick={loadOrders} className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
-                    <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                </button>
             </div>
 
-            {/* STATS - Scrollable on mobile */}
+            {/* ============ STATS - SCROLLABLE ============ */}
             <div className="flex-shrink-0 bg-white border-b-2 border-gray-100 px-4 sm:px-6 py-2 sm:py-3 flex gap-2 overflow-x-auto scrollbar-hide">
                 {Object.entries(stats).map(([key, value]) => {
                     const isActive = statusFilter === (key === "total" ? "all" : key);
@@ -159,19 +169,27 @@ export default function UsersOrders() {
                             onClick={() => setStatusFilter(key === "total" ? "all" : key)}
                             className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 border-2 transition-all ${
                                 key === "total"
-                                    ? isActive ? "bg-black text-white border-black" : "bg-gray-100 border-gray-200"
-                                    : isActive ? `${config.bg} ${config.border}` : `${config.bg} ${config.border}`
+                                    ? isActive ? "bg-black text-white border-black" : "bg-gray-100 border-gray-200 hover:bg-gray-200"
+                                    : isActive 
+                                        ? `${config.bg} ${config.border}` 
+                                        : `${config.bg} ${config.border} hover:opacity-80`
                             }`}
                         >
-                            <p className={`text-xs ${key === "total" ? (isActive ? "text-gray-400" : "text-gray-500") : config.text} capitalize`}>{key}</p>
-                            <p className={`text-base sm:text-lg font-black ${key === "total" ? "" : config.text}`}>{value}</p>
+                            <p className={`text-xs ${key === "total" ? (isActive ? "text-gray-400" : "text-gray-500") : config.text} capitalize`}>
+                                {key}
+                            </p>
+                            <p className={`text-base sm:text-lg font-black ${key === "total" ? (isActive ? "text-white" : "text-black") : config.text}`}>
+                                {value}
+                            </p>
                         </button>
                     );
                 })}
             </div>
 
-            {/* FILTERS */}
+            {/* ============ FILTERS ============ */}
             <div className="flex-shrink-0 bg-white border-b-2 border-gray-100 px-4 sm:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-4">
+                
+                {/* Search */}
                 <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -179,7 +197,7 @@ export default function UsersOrders() {
                         placeholder="Search orders..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-3 border-2 border-gray-200 focus:border-black outline-none text-sm font-medium"
+                        className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-3 border-2 border-gray-200 focus:border-black outline-none text-sm font-medium transition-all"
                     />
                 </div>
                 
@@ -189,7 +207,11 @@ export default function UsersOrders() {
                         <button
                             key={tab}
                             onClick={() => setStatusFilter(tab)}
-                            className={`h-9 sm:h-10 px-3 sm:px-4 text-xs font-bold uppercase ${statusFilter === tab ? "bg-black text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                            className={`h-9 sm:h-10 px-3 sm:px-4 text-xs font-bold uppercase transition-all ${
+                                statusFilter === tab 
+                                    ? "bg-black text-white" 
+                                    : "bg-white text-gray-600 hover:bg-gray-50"
+                            }`}
                         >
                             {tab}
                         </button>
@@ -200,7 +222,7 @@ export default function UsersOrders() {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="md:hidden h-9 px-2 border-2 border-gray-200 text-xs font-bold bg-white"
+                    className="md:hidden h-9 px-2 border-2 border-gray-200 text-xs font-bold bg-white focus:border-black outline-none"
                 >
                     {FILTER_TABS.map((tab) => (
                         <option key={tab} value={tab}>{tab.toUpperCase()}</option>
@@ -208,7 +230,7 @@ export default function UsersOrders() {
                 </select>
             </div>
 
-            {/* CONTENT */}
+            {/* ============ CONTENT ============ */}
             <div className="flex-1 overflow-hidden bg-white">
                 {loading ? (
                     <div className="h-full flex items-center justify-center">
@@ -216,13 +238,21 @@ export default function UsersOrders() {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-4">
-                        <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mb-3" />
+                        <div className="w-16 h-16 bg-gray-100 flex items-center justify-center mb-4">
+                            <Package className="w-8 h-8 text-gray-300" />
+                        </div>
                         <h3 className="font-black text-base sm:text-lg mb-2">NO ORDERS FOUND</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            {searchTerm ? "No orders match your search" : "You haven't placed any orders yet"}
+                        <p className="text-sm text-gray-500 mb-4 text-center">
+                            {searchTerm || statusFilter !== "all" 
+                                ? "No orders match your search criteria" 
+                                : "You haven't placed any orders yet"
+                            }
                         </p>
                         {(searchTerm || statusFilter !== "all") && (
-                            <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); }} className="px-4 py-2 bg-black text-white text-xs sm:text-sm font-bold">
+                            <button 
+                                onClick={() => { setSearchTerm(""); setStatusFilter("all"); }} 
+                                className="h-10 px-6 bg-black hover:bg-red-600 text-white text-xs sm:text-sm font-bold transition-all"
+                            >
                                 CLEAR FILTERS
                             </button>
                         )}
@@ -232,7 +262,7 @@ export default function UsersOrders() {
                         
                         {/* Desktop Table Header */}
                         <div className="flex-shrink-0 bg-gray-50 border-b-2 border-gray-200 px-4 py-2 hidden sm:grid grid-cols-12 gap-2 text-xs font-black text-gray-500 uppercase">
-                            <div className="col-span-2">Order ID</div>
+                            <div className="col-span-2">Order</div>
                             <div className="col-span-2">Date</div>
                             <div className="col-span-2">Items</div>
                             <div className="col-span-2">Total</div>
@@ -246,9 +276,13 @@ export default function UsersOrders() {
                                 const status = getStatus(order.status);
                                 const StatusIcon = status.icon;
                                 const isProcessing = order.status === "processing";
+                                const isCancelling = cancellingId === order.order_id;
                                 
                                 return (
-                                    <div key={order.order_id} className="border-b border-gray-100 hover:bg-gray-50 transition-all">
+                                    <div 
+                                        key={order.order_id} 
+                                        className="border-b border-gray-100 hover:bg-gray-50 transition-all"
+                                    >
                                         
                                         {/* Mobile View */}
                                         <div className="sm:hidden p-3 flex items-center gap-3">
@@ -269,17 +303,17 @@ export default function UsersOrders() {
                                                 <div className="flex gap-1">
                                                     <button
                                                         onClick={() => setSelectedOrder(order)}
-                                                        className="w-7 h-7 bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center"
+                                                        className="w-7 h-7 bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center transition-all"
                                                     >
                                                         <Eye className="w-3 h-3" />
                                                     </button>
                                                     {isProcessing && (
                                                         <button
                                                             onClick={() => cancelOrder(order.order_id)}
-                                                            disabled={cancellingId === order.order_id}
-                                                            className="w-7 h-7 bg-red-100 hover:bg-red-600 hover:text-white text-red-600 flex items-center justify-center disabled:opacity-50"
+                                                            disabled={isCancelling}
+                                                            className="w-7 h-7 bg-red-100 hover:bg-red-600 hover:text-white text-red-600 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
-                                                            {cancellingId === order.order_id 
+                                                            {isCancelling 
                                                                 ? <Loader2 className="w-3 h-3 animate-spin" />
                                                                 : <Ban className="w-3 h-3" />
                                                             }
@@ -293,7 +327,7 @@ export default function UsersOrders() {
                                         <div className="hidden sm:grid grid-cols-12 gap-2 px-4 py-3 items-center">
                                             <div className="col-span-2 font-black text-sm">#{order.order_id}</div>
                                             <div className="col-span-2 text-sm text-gray-600">{formatDate(order.order_date)}</div>
-                                            <div className="col-span-2 text-sm">{order.items?.length || 0} items</div>
+                                            <div className="col-span-2 text-sm font-medium">{order.items?.length || 0} items</div>
                                             <div className="col-span-2 font-black text-red-600">Rs. {Number(order.total).toLocaleString()}</div>
                                             <div className="col-span-2">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-bold ${status.bg} ${status.text}`}>
@@ -304,7 +338,7 @@ export default function UsersOrders() {
                                             <div className="col-span-2 flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => setSelectedOrder(order)}
-                                                    className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center"
+                                                    className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white flex items-center justify-center transition-all"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
@@ -312,11 +346,11 @@ export default function UsersOrders() {
                                                 {isProcessing && (
                                                     <button
                                                         onClick={() => cancelOrder(order.order_id)}
-                                                        disabled={cancellingId === order.order_id}
-                                                        className="w-8 h-8 bg-red-100 hover:bg-red-600 hover:text-white text-red-600 flex items-center justify-center disabled:opacity-50"
+                                                        disabled={isCancelling}
+                                                        className="w-8 h-8 bg-red-100 hover:bg-red-600 hover:text-white text-red-600 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Cancel Order"
                                                     >
-                                                        {cancellingId === order.order_id 
+                                                        {isCancelling 
                                                             ? <Loader2 className="w-4 h-4 animate-spin" />
                                                             : <Ban className="w-4 h-4" />
                                                         }
@@ -333,15 +367,29 @@ export default function UsersOrders() {
                         {totalPages > 1 && (
                             <div className="flex-shrink-0 border-t-2 border-gray-100 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
                                 <p className="text-xs text-gray-500">
-                                    <span className="font-black text-black">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)}</span>
-                                    <span className="hidden sm:inline">{" of "}<span className="font-black text-black">{filtered.length}</span></span>
+                                    <span className="font-black text-black">
+                                        {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)}
+                                    </span>
+                                    <span className="hidden sm:inline">
+                                        {" of "}<span className="font-black text-black">{filtered.length}</span>
+                                    </span>
                                 </p>
                                 <div className="flex gap-1">
-                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white disabled:opacity-30 flex items-center justify-center">
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                                        disabled={currentPage === 1} 
+                                        className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-black flex items-center justify-center transition-all"
+                                    >
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
-                                    <span className="px-2 sm:px-3 flex items-center font-bold text-xs sm:text-sm">{currentPage}/{totalPages}</span>
-                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white disabled:opacity-30 flex items-center justify-center">
+                                    <span className="px-2 sm:px-3 flex items-center font-bold text-xs sm:text-sm">
+                                        {currentPage}/{totalPages}
+                                    </span>
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                                        disabled={currentPage === totalPages} 
+                                        className="w-8 h-8 bg-gray-100 hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-black flex items-center justify-center transition-all"
+                                    >
                                         <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -351,7 +399,7 @@ export default function UsersOrders() {
                 )}
             </div>
 
-            {/* MODAL */}
+            {/* ============ MODAL ============ */}
             {selectedOrder && (
                 <OrderModal
                     order={selectedOrder}
@@ -370,6 +418,7 @@ export default function UsersOrders() {
 // ============ ORDER MODAL COMPONENT ============
 function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, formatDateTime, getStatus }) {
     const status = getStatus(order.status);
+    const isCancelling = cancellingId === order.order_id;
 
     const STEPS = [
         { step: 1, icon: Clock, label: "Processing" },
@@ -394,7 +443,7 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                         <div className="w-10 h-1 bg-white/30 rounded-full"></div>
                     </div>
 
-                    {/* Left Panel */}
+                    {/* ============ LEFT PANEL ============ */}
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                         
                         {/* Header */}
@@ -412,12 +461,21 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                                             </span>
                                         </div>
                                         <div className="flex gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400 mt-1">
-                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(order.order_date)}</span>
-                                            <span className="flex items-center gap-1"><Box className="w-3 h-3" />{order.items?.length || 0} items</span>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {formatDate(order.order_date)}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Box className="w-3 h-3" />
+                                                {order.items?.length || 0} items
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={onClose} className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-red-600 flex items-center justify-center text-white">
+                                <button 
+                                    onClick={onClose} 
+                                    className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 hover:bg-red-600 flex items-center justify-center text-white transition-all"
+                                >
                                     <X className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             </div>
@@ -431,14 +489,23 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                                         return (
                                             <div key={item.step} className="flex-1 flex items-center">
                                                 <div className="flex flex-col items-center">
-                                                    <div className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${isCompleted ? (isCurrent ? "bg-red-600 ring-2 sm:ring-4 ring-red-600/30" : "bg-red-600") : "bg-white/10"}`}>
+                                                    <div className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center transition-all ${
+                                                        isCompleted 
+                                                            ? (isCurrent ? "bg-red-600 ring-2 sm:ring-4 ring-red-600/30" : "bg-red-600") 
+                                                            : "bg-white/10"
+                                                    }`}>
                                                         <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isCompleted ? "text-white" : "text-white/30"}`} />
                                                     </div>
-                                                    <span className={`text-xs mt-1 sm:mt-2 font-bold ${isCompleted ? "text-white" : "text-white/30"} hidden sm:block`}>{item.label}</span>
+                                                    <span className={`text-xs mt-1 sm:mt-2 font-bold hidden sm:block ${isCompleted ? "text-white" : "text-white/30"}`}>
+                                                        {item.label}
+                                                    </span>
                                                 </div>
                                                 {idx < 2 && (
                                                     <div className="flex-1 h-0.5 mx-1 sm:mx-3 bg-white/10 relative">
-                                                        <div className="absolute inset-y-0 left-0 bg-red-600 transition-all" style={{ width: item.step < status.step ? '100%' : '0%' }} />
+                                                        <div 
+                                                            className="absolute inset-y-0 left-0 bg-red-600 transition-all duration-300" 
+                                                            style={{ width: item.step < status.step ? '100%' : '0%' }} 
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
@@ -446,39 +513,53 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                                     })}
                                 </div>
                             )}
+
+                            {/* Cancelled Status */}
+                            {order.status === "cancelled" && (
+                                <div className="pt-3 sm:pt-4 border-t border-white/10">
+                                    <div className="flex items-center gap-3 text-red-400">
+                                        <XCircle className="w-5 h-5" />
+                                        <span className="font-bold text-sm">Order has been cancelled</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                             
-                            {/* Customer Info */}
-                            <div className="bg-gray-50 p-3 sm:p-4">
-                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3">Delivery Information</h3>
+                            {/* Delivery Information */}
+                            <div className="bg-gray-50 border-2 border-gray-100 p-3 sm:p-4">
+                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3 tracking-wide">
+                                    Delivery Information
+                                </h3>
                                 <div className="space-y-2">
-                                    <p className="font-bold">{order.customer_name}</p>
+                                    <p className="font-bold text-sm sm:text-base">{order.customer_name}</p>
                                     <p className="text-sm text-gray-600 flex items-center gap-2">
-                                        <Phone className="w-4 h-4 text-gray-400" />
+                                        <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                         {order.customer_phone}
                                     </p>
                                     <p className="text-sm text-gray-600 flex items-start gap-2">
                                         <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                                        {order.customer_address}
+                                        <span className="line-clamp-3">{order.customer_address}</span>
                                     </p>
                                 </div>
                             </div>
 
                             {/* Order Timeline */}
-                            <div className="bg-gray-50 p-3 sm:p-4">
-                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3">Order Timeline</h3>
+                            <div className="bg-gray-50 border-2 border-gray-100 p-3 sm:p-4">
+                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3 tracking-wide">
+                                    Order Timeline
+                                </h3>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Order Placed:</span>
-                                        <span className="font-medium">{formatDateTime(order.order_date)}</span>
+                                        <span className="text-gray-500">Order Placed:</span>
+                                        <span className="font-bold">{formatDateTime(order.order_date)}</span>
                                     </div>
                                     {order.updated_at && (
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">Last Updated:</span>
-                                            <span className="font-medium">{formatDateTime(order.updated_at)}</span>
+                                            <span className="text-gray-500">Last Updated:</span>
+                                            <span className="font-bold">{formatDateTime(order.updated_at)}</span>
                                         </div>
                                     )}
                                 </div>
@@ -486,57 +567,79 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
 
                             {/* Order Items */}
                             <div>
-                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3">Order Items</h3>
-                                {order.items?.map((item, idx) => (
-                                    <div key={idx} className="bg-white border border-gray-200 mb-2">
-                                        <div className="p-3 sm:p-4 flex gap-3 sm:gap-4">
-                                            <img src={item.image} alt={item.product_name} className="w-16 h-16 sm:w-20 sm:h-20 object-cover bg-gray-100 flex-shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-sm sm:text-base mb-1 sm:mb-2 line-clamp-2">{item.product_name}</h4>
-                                                <div className="flex gap-2 mb-1 sm:mb-2 flex-wrap">
-                                                    <span className="bg-black text-white text-xs px-2 py-0.5 font-bold">SIZE {item.size_value}</span>
-                                                    <span className="bg-gray-100 text-xs px-2 py-0.5 font-bold">QTY: {item.quantity}</span>
+                                <h3 className="font-black text-xs uppercase text-gray-500 mb-3 tracking-wide">
+                                    Order Items ({order.items?.length || 0})
+                                </h3>
+                                <div className="space-y-2">
+                                    {order.items?.map((item, idx) => (
+                                        <div key={idx} className="bg-white border-2 border-gray-100">
+                                            <div className="p-3 sm:p-4 flex gap-3 sm:gap-4">
+                                                <img 
+                                                    src={item.image} 
+                                                    alt={item.product_name} 
+                                                    className="w-16 h-16 sm:w-20 sm:h-20 object-cover bg-gray-100 flex-shrink-0" 
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-sm sm:text-base mb-2 line-clamp-2">
+                                                        {item.product_name}
+                                                    </h4>
+                                                    <div className="flex gap-2 mb-2 flex-wrap">
+                                                        <span className="bg-black text-white text-xs px-2 py-0.5 font-bold">
+                                                            SIZE {item.size_value}
+                                                        </span>
+                                                        <span className="bg-gray-100 text-xs px-2 py-0.5 font-bold">
+                                                            QTY: {item.quantity}
+                                                        </span>
+                                                    </div>
+                                                    <p className="font-black text-red-600 text-sm sm:text-base">
+                                                        Rs. {Number(item.line_total).toLocaleString()}
+                                                    </p>
                                                 </div>
-                                                <p className="font-black text-red-600 text-sm sm:text-base">Rs. {Number(item.line_total).toLocaleString()}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
                         {/* Mobile Summary */}
-                        <div className="sm:hidden flex-shrink-0 border-t border-gray-200 p-4 space-y-3 bg-gray-50">
+                        <div className="sm:hidden flex-shrink-0 border-t-2 border-gray-100 p-4 space-y-3 bg-gray-50">
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-500 text-sm">Total</span>
-                                <span className="text-xl font-black text-red-600">Rs. {Number(order.total).toLocaleString()}</span>
+                                <span className="text-gray-500 text-sm font-bold">Total Amount</span>
+                                <span className="text-xl font-black text-red-600">
+                                    Rs. {Number(order.total).toLocaleString()}
+                                </span>
                             </div>
                             
                             {order.status === "processing" && (
                                 <button
                                     onClick={() => onCancel(order.order_id)}
-                                    disabled={cancellingId === order.order_id}
-                                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                                    disabled={isCancelling}
+                                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {cancellingId === order.order_id 
+                                    {isCancelling 
                                         ? <Loader2 className="w-4 h-4 animate-spin" />
                                         : <Ban className="w-4 h-4" />
                                     }
-                                    {cancellingId === order.order_id ? "CANCELLING..." : "CANCEL ORDER"}
+                                    {isCancelling ? "CANCELLING..." : "CANCEL ORDER"}
                                 </button>
                             )}
 
-                            <button onClick={onClose} className="w-full h-10 bg-black text-white font-bold text-sm">
+                            <button 
+                                onClick={onClose} 
+                                className="w-full h-10 bg-black hover:bg-gray-800 text-white font-bold text-sm transition-all"
+                            >
                                 CLOSE
                             </button>
                         </div>
                     </div>
 
-                    {/* Right Panel (Desktop Only) */}
-                    <div className="hidden sm:flex w-72 flex-shrink-0 bg-gray-50 flex-col border-l border-gray-200">
+                    {/* ============ RIGHT PANEL (Desktop Only) ============ */}
+                    <div className="hidden sm:flex w-72 flex-shrink-0 bg-gray-50 flex-col border-l-2 border-gray-100">
                         <div className="flex-1 p-5 space-y-4 overflow-y-auto">
-                            <h4 className="font-black text-sm uppercase">Order Summary</h4>
+                            <h4 className="font-black text-sm uppercase tracking-wide">Order Summary</h4>
                             
+                            {/* Pricing */}
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Subtotal</span>
@@ -544,10 +647,11 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Shipping</span>
-                                    <span className="font-bold text-green-600">FREE</span>
+                                    <span className="font-bold text-emerald-600">FREE</span>
                                 </div>
                             </div>
 
+                            {/* Total */}
                             <div className="bg-black text-white p-4 -mx-5">
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-400 text-sm">TOTAL</span>
@@ -555,57 +659,93 @@ function OrderModal({ order, onClose, onCancel, cancellingId, formatDate, format
                                 </div>
                             </div>
 
-                            <div className="bg-white border border-gray-200 p-3 flex items-center gap-3">
-                                <Banknote className="w-5 h-5 text-emerald-600" />
+                            {/* Payment Method */}
+                            <div className="bg-white border-2 border-gray-200 p-3 flex items-center gap-3">
+                                <Banknote className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                                 <div>
                                     <p className="font-bold text-sm">Cash on Delivery</p>
                                     <p className="text-xs text-gray-500">Payment on delivery</p>
                                 </div>
                             </div>
 
-                            <div className="bg-green-50 border border-green-200 p-3 flex items-center gap-3">
-                                <Shield className="w-5 h-5 text-green-600" />
-                                <span className="text-xs font-bold text-green-700">Secure Order</span>
+                            {/* Security Badge */}
+                            <div className="bg-emerald-50 border-2 border-emerald-200 p-3 flex items-center gap-3">
+                                <Shield className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                                <span className="text-xs font-bold text-emerald-700">Secure Order</span>
                             </div>
 
-                            {/* Order Status Info */}
-                            {order.status === "cancelled" && (
-                                <div className="bg-red-50 border border-red-200 p-3">
-                                    <p className="text-xs font-bold text-red-700">Order has been cancelled</p>
-                                </div>
-                            )}
-
-                            {order.status === "completed" && (
-                                <div className="bg-emerald-50 border border-emerald-200 p-3">
-                                    <p className="text-xs font-bold text-emerald-700">Order delivered successfully</p>
+                            {/* Status Info Cards */}
+                            {order.status === "processing" && (
+                                <div className="bg-amber-50 border-2 border-amber-200 p-3">
+                                    <div className="flex items-start gap-2">
+                                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-amber-700">Order is being processed</p>
+                                            <p className="text-xs text-amber-600 mt-1">You can cancel before it ships</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             {order.status === "delivering" && (
-                                <div className="bg-blue-50 border border-blue-200 p-3">
-                                    <p className="text-xs font-bold text-blue-700">Your order is on the way</p>
+                                <div className="bg-blue-50 border-2 border-blue-200 p-3">
+                                    <div className="flex items-start gap-2">
+                                        <Truck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-blue-700">Your order is on the way</p>
+                                            <p className="text-xs text-blue-600 mt-1">Expected delivery soon</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {order.status === "completed" && (
+                                <div className="bg-emerald-50 border-2 border-emerald-200 p-3">
+                                    <div className="flex items-start gap-2">
+                                        <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-emerald-700">Order delivered successfully</p>
+                                            <p className="text-xs text-emerald-600 mt-1">Thank you for shopping!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {order.status === "cancelled" && (
+                                <div className="bg-red-50 border-2 border-red-200 p-3">
+                                    <div className="flex items-start gap-2">
+                                        <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-red-700">Order has been cancelled</p>
+                                            <p className="text-xs text-red-600 mt-1">No charges applied</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         {/* Desktop Actions */}
-                        <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-2">
+                        <div className="flex-shrink-0 p-4 border-t-2 border-gray-100 space-y-2">
                             {order.status === "processing" && (
                                 <button
                                     onClick={() => onCancel(order.order_id)}
-                                    disabled={cancellingId === order.order_id}
-                                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                                    disabled={isCancelling}
+                                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {cancellingId === order.order_id 
+                                    {isCancelling 
                                         ? <Loader2 className="w-4 h-4 animate-spin" />
                                         : <Ban className="w-4 h-4" />
                                     }
-                                    {cancellingId === order.order_id ? "CANCELLING..." : "CANCEL ORDER"}
+                                    {isCancelling ? "CANCELLING..." : "CANCEL ORDER"}
                                 </button>
                             )}
 
-                            <button onClick={onClose} className="w-full h-10 bg-black hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-2">
-                                CLOSE<ArrowRight className="w-4 h-4" />
+                            <button 
+                                onClick={onClose} 
+                                className="w-full h-10 bg-black hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                            >
+                                CLOSE
+                                <ArrowRight className="w-4 h-4" />
                             </button>
                         </div>
                     </div>

@@ -1,8 +1,131 @@
-
-import {  isAdmin, isCustomer, isDelivery } from "./userController.js";
+import { isAdmin, isCustomer, isDelivery } from "./userController.js";
 import { pool } from "../db.js";
 
+// ==========================
+// VALIDATION HELPER FUNCTIONS
+// ==========================
 
+function validatePhone(phone) {
+  // Phone: 10-15 digits, can start with + or 0
+  const phoneRegex = /^[+]?[0-9]{10,15}$/;
+  return phone && phoneRegex.test(phone.replace(/[\s-]/g, ""));
+}
+
+function validateAddress(address) {
+  // Address: 10-500 characters
+  return address && address.trim().length >= 10 && address.trim().length <= 500;
+}
+
+function validateDescription(description) {
+  // Description: max 1000 characters (optional)
+  if (!description) return true;
+  return description.trim().length <= 1000;
+}
+
+function validateQuantity(quantity) {
+  // Quantity: positive integer
+  const qty = Number(quantity);
+  return !isNaN(qty) && qty > 0 && Number.isInteger(qty);
+}
+
+function validateProductId(id) {
+  // Product ID: positive integer
+  const numId = Number(id);
+  return numId && !isNaN(numId) && numId > 0 && Number.isInteger(numId);
+}
+
+function validateOrderId(id) {
+  // Order ID: positive integer
+  const numId = Number(id);
+  return numId && !isNaN(numId) && numId > 0 && Number.isInteger(numId);
+}
+
+function validateUserId(id) {
+  // User ID: positive integer
+  const numId = Number(id);
+  return numId && !isNaN(numId) && numId > 0 && Number.isInteger(numId);
+}
+
+function validateSizeValue(size_value) {
+  // Size: non-empty string, max 20 chars
+  return size_value && size_value.trim().length > 0 && size_value.trim().length <= 20;
+}
+
+function validateItemsArray(items) {
+  // Items validation
+  if (!Array.isArray(items)) {
+    return { valid: false, message: "Items must be an array" };
+  }
+
+  if (items.length === 0) {
+    return { valid: false, message: "Items array cannot be empty" };
+  }
+
+  if (items.length > 50) {
+    return { valid: false, message: "Maximum 50 items per order allowed" };
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    // Check required fields
+    if (!item.product_id) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: product_id is required`
+      };
+    }
+
+    if (!validateProductId(item.product_id)) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: product_id must be a positive integer`
+      };
+    }
+
+    if (!item.size_value) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: size_value is required`
+      };
+    }
+
+    if (!validateSizeValue(item.size_value)) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: size_value must be 1-20 characters`
+      };
+    }
+
+    if (item.quantity === null || item.quantity === undefined) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: quantity is required`
+      };
+    }
+
+    if (!validateQuantity(item.quantity)) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: quantity must be a positive integer`
+      };
+    }
+
+    // Optional: max quantity per item
+    if (Number(item.quantity) > 100) {
+      return {
+        valid: false,
+        message: `Item at index ${i}: maximum quantity per item is 100`
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+// ==========================
+// MAKE ORDER
+// ==========================
 export async function Make_Order(req, res) {
   let connection;
 
@@ -11,10 +134,19 @@ export async function Make_Order(req, res) {
     const user = req.user;
 
     if (!user || !user.userid) {
-      return res.status(401).json({ message: "Unauthorized: user not found in token" });
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
     }
 
     const userId = user.userid;
+
+    // Validate userId
+    if (!validateUserId(userId)) {
+      return res.status(400).json({ 
+        message: "Invalid user ID" 
+      });
+    }
 
     // Build full name safely
     let firstName = user.firstname || "";
@@ -22,7 +154,7 @@ export async function Make_Order(req, res) {
 
     if (!firstName && !lastName) {
       const [userRows] = await pool.query(
-        "SELECT firstname, lastname FROM users WHERE userid = ?",
+        "SELECT firstname, lastname FROM users WHERE userid = ? AND isActive = 'active'",
         [userId]
       );
 
@@ -37,33 +169,66 @@ export async function Make_Order(req, res) {
     // 2) Check role
     const customer = await isCustomer(userId);
     if (!customer) {
-      return res.status(403).json({ message: "Only customers can place orders" });
+      return res.status(403).json({ 
+        message: "Only customers can place orders" 
+      });
     }
 
-    // 3) Read data
+    // 3) Read and validate data
     const { customer_address, customer_phone, description, items } = req.body;
 
-    if (!customer_address || !customer_phone) {
-      return res.status(400).json({ message: "customer_address and customer_phone are required" });
+    // Validate required fields
+    if (!customer_address) {
+      return res.status(400).json({ 
+        message: "Customer address is required" 
+      });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: "items array is required and cannot be empty" });
+    if (!customer_phone) {
+      return res.status(400).json({ 
+        message: "Customer phone is required" 
+      });
     }
 
-    // Validate each item
+    // Validate address
+    if (!validateAddress(customer_address)) {
+      return res.status(400).json({ 
+        message: "Address must be 10-500 characters" 
+      });
+    }
+
+    // Validate phone
+    if (!validatePhone(customer_phone)) {
+      return res.status(400).json({ 
+        message: "Invalid phone number. Must be 10-15 digits" 
+      });
+    }
+
+    // Validate description (optional)
+    if (description && !validateDescription(description)) {
+      return res.status(400).json({ 
+        message: "Description must be less than 1000 characters" 
+      });
+    }
+
+    // Validate items array
+    const itemsValidation = validateItemsArray(items);
+    if (!itemsValidation.valid) {
+      return res.status(400).json({ 
+        message: itemsValidation.message 
+      });
+    }
+
+    // Check for duplicate items (same product_id + size_value)
+    const itemKeys = new Set();
     for (const item of items) {
-      if (!item.product_id || !item.size_value || item.quantity == null) {
+      const key = `${item.product_id}-${item.size_value}`;
+      if (itemKeys.has(key)) {
         return res.status(400).json({
-          message: "Each item must have product_id, size_value and quantity"
+          message: `Duplicate item found: product_id ${item.product_id} with size ${item.size_value}. Please combine quantities instead.`
         });
       }
-      const qty = Number(item.quantity);
-      if (Number.isNaN(qty) || qty <= 0) {
-        return res.status(400).json({
-          message: "Each item quantity must be a positive number"
-        });
-      }
+      itemKeys.add(key);
     }
 
     // 4) Start transaction
@@ -77,6 +242,26 @@ export async function Make_Order(req, res) {
     for (const item of items) {
       const qty = Number(item.quantity);
 
+      // Check product exists and is active
+      const [productCheck] = await connection.query(
+        "SELECT product_id, isActive FROM products WHERE product_id = ?",
+        [item.product_id]
+      );
+
+      if (productCheck.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          message: `Product not found: product_id ${item.product_id}`
+        });
+      }
+
+      if (productCheck[0].isActive !== 'active') {
+        await connection.rollback();
+        return res.status(400).json({
+          message: `Product is not available: product_id ${item.product_id}`
+        });
+      }
+
       const [rows] = await connection.query(
         `
         SELECT 
@@ -89,15 +274,15 @@ export async function Make_Order(req, res) {
         FROM products p
         INNER JOIN product_sizes ps
           ON p.product_id = ps.product_id
-        WHERE p.product_id = ? AND ps.size_value = ?
+        WHERE p.product_id = ? AND ps.size_value = ? AND p.isActive = 'active'
         `,
-        [item.product_id, item.size_value]
+        [item.product_id, item.size_value.trim()]
       );
 
       if (rows.length === 0) {
         await connection.rollback();
         return res.status(404).json({
-          message: `Product or size not found for product_id ${item.product_id}, size_value ${item.size_value}`
+          message: `Size '${item.size_value}' not found for product_id ${item.product_id}`
         });
       }
 
@@ -107,16 +292,19 @@ export async function Make_Order(req, res) {
       if (productRow.stock < qty) {
         await connection.rollback();
         return res.status(400).json({
-          message: `Not enough stock for product_id ${item.product_id}, size ${item.size_value}`,
-          available_stock: productRow.stock
+          message: `Insufficient stock for "${productRow.name}" (size: ${item.size_value})`,
+          available_stock: productRow.stock,
+          requested_quantity: qty
         });
       }
 
       const unitPrice = Number(productRow.price);
 
-      if (Number.isNaN(unitPrice)) {
+      if (isNaN(unitPrice) || unitPrice <= 0) {
         await connection.rollback();
-        return res.status(500).json({ message: "Invalid product price in database" });
+        return res.status(500).json({ 
+          message: "Invalid product price in database" 
+        });
       }
 
       const lineTotal = Number((unitPrice * qty).toFixed(2));
@@ -133,6 +321,22 @@ export async function Make_Order(req, res) {
       });
     }
 
+    // Validate order total
+    if (orderTotal <= 0) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        message: "Order total must be greater than 0" 
+      });
+    }
+
+    // Optional: Maximum order limit
+    if (orderTotal > 1000000) {
+      await connection.rollback();
+      return res.status(400).json({ 
+        message: "Order total exceeds maximum limit" 
+      });
+    }
+
     // 6) Insert order header
     const [orderResult] = await connection.query(
       `
@@ -143,11 +347,11 @@ export async function Make_Order(req, res) {
       [
         userId,
         fullName || null,
-        customer_phone,
-        customer_address,
+        customer_phone.trim(),
+        customer_address.trim(),
         "processing",
         Number(orderTotal.toFixed(2)),
-        description || null
+        description ? description.trim() : null
       ]
     );
 
@@ -188,6 +392,7 @@ export async function Make_Order(req, res) {
       total: Number(orderTotal.toFixed(2)),
       items: orderItems
     });
+
   } catch (error) {
     console.error("Error creating order:", error.message, error);
 
@@ -210,30 +415,35 @@ export async function Make_Order(req, res) {
   }
 }
 
-
-// ... Make_Order here ...
-
+// ==========================
+// VIEW MY ORDERS (Customer)
+// ==========================
 export async function View_My_Orders(req, res) {
   try {
-    // 1) Get user from token
     const user = req.user;
+
     if (!user || !user.userid) {
-      return res
-        .status(401)
-        .json({ message: "Unauthorized: user not found in token" });
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
     }
 
     const userId = user.userid;
 
-    // 2) Check role (only customers)
-    const customer = await isCustomer(userId);
-    if (!customer) {
-      return res
-        .status(403)
-        .json({ message: "Only customers can view their orders" });
+    // Validate userId
+    if (!validateUserId(userId)) {
+      return res.status(400).json({ 
+        message: "Invalid user ID" 
+      });
     }
 
-    // 3) Load orders + items for this user
+    const customer = await isCustomer(userId);
+    if (!customer) {
+      return res.status(403).json({ 
+        message: "Only customers can view their orders" 
+      });
+    }
+
     const sql = `
       SELECT
         o.order_id,
@@ -245,7 +455,6 @@ export async function View_My_Orders(req, res) {
         o.total,
         o.description,
         o.order_date,
-
         oi.order_item_id,
         oi.product_id,
         oi.size_id,
@@ -255,10 +464,8 @@ export async function View_My_Orders(req, res) {
         oi.line_total,
         ps.size_value
       FROM orders o
-      LEFT JOIN order_items oi
-        ON o.order_id = oi.order_id
-      LEFT JOIN product_sizes ps
-        ON oi.size_id = ps.size_id
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
       WHERE o.user_id = ?
       ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id
     `;
@@ -266,11 +473,9 @@ export async function View_My_Orders(req, res) {
     const [rows] = await pool.query(sql, [userId]);
 
     if (rows.length === 0) {
-      // No orders for this user
       return res.status(200).json([]);
     }
 
-    // 4) Group rows by order_id
     const ordersMap = new Map();
 
     for (const row of rows) {
@@ -306,6 +511,7 @@ export async function View_My_Orders(req, res) {
     const orders = Array.from(ordersMap.values());
 
     return res.status(200).json(orders);
+
   } catch (error) {
     console.error("Error fetching my orders:", error.message, error);
     return res.status(500).json({
@@ -315,9 +521,27 @@ export async function View_My_Orders(req, res) {
   }
 }
 
-
+// ==========================
+// VIEW ADMIN ORDERS
+// ==========================
 export async function View_Admin_Orders(req, res) {
   try {
+    const user = req.user;
+
+    // Validate admin access
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
+    const admin = await isAdmin(user.userid);
+    if (!admin) {
+      return res.status(403).json({ 
+        message: "Only admin can view all orders" 
+      });
+    }
+
     const sql = `
       SELECT
         o.order_id,
@@ -327,8 +551,6 @@ export async function View_Admin_Orders(req, res) {
         o.status,
         o.total,
         o.order_date,
-
-        -- order items
         oi.order_item_id,
         oi.product_id,
         oi.size_id,
@@ -336,18 +558,12 @@ export async function View_Admin_Orders(req, res) {
         oi.price,
         oi.quantity,
         oi.line_total,
-
-        -- product sizes
         ps.size_value,
-
-        -- product
         p.images
-
       FROM orders o
       LEFT JOIN order_items oi ON o.order_id = oi.order_id
       LEFT JOIN product_sizes ps ON oi.size_id = ps.size_id
       LEFT JOIN products p ON oi.product_id = p.product_id
-
       ORDER BY o.order_date DESC, o.order_id DESC
     `;
 
@@ -370,11 +586,16 @@ export async function View_Admin_Orders(req, res) {
       }
 
       if (r.order_item_id) {
-        const images = r.images ? JSON.parse(r.images) : [];
+        let images = [];
+        try {
+          images = r.images ? JSON.parse(r.images) : [];
+        } catch (e) {
+          images = [];
+        }
 
         map.get(r.order_id).items.push({
-          product_id: r.product_id,   // Added
-          size_id: r.size_id,         // Added
+          product_id: r.product_id,
+          size_id: r.size_id,
           product_name: r.product_name,
           size_value: r.size_value,
           quantity: r.quantity,
@@ -386,19 +607,39 @@ export async function View_Admin_Orders(req, res) {
     }
 
     return res.status(200).json([...map.values()]);
+
   } catch (err) {
-    console.log(err);
+    console.error("Error loading admin orders:", err);
     return res.status(500).json({ message: "Error loading orders" });
   }
 }
 
-
+// ==========================
+// VIEW ORDERS BY USER ID
+// ==========================
 export async function View_Orders_ByUser(req, res) {
   try {
     const { user_id } = req.params;
 
+    // Validate user_id
     if (!user_id) {
       return res.status(400).json({ message: "User ID is required" });
+    }
+
+    if (!validateUserId(user_id)) {
+      return res.status(400).json({ 
+        message: "Invalid User ID. Must be a positive integer" 
+      });
+    }
+
+    // Check if user exists
+    const [userCheck] = await pool.query(
+      "SELECT userid FROM users WHERE userid = ?",
+      [user_id]
+    );
+
+    if (userCheck.length === 0) {
+      return res.status(404).json({ message: "User not found" });
     }
 
     const sql = `
@@ -429,7 +670,6 @@ export async function View_Orders_ByUser(req, res) {
 
     const [rows] = await pool.query(sql, [user_id]);
 
-    // GROUP ORDERS
     const map = new Map();
 
     for (const r of rows) {
@@ -448,7 +688,12 @@ export async function View_Orders_ByUser(req, res) {
       }
 
       if (r.order_item_id) {
-        const images = r.images ? JSON.parse(r.images) : [];
+        let images = [];
+        try {
+          images = r.images ? JSON.parse(r.images) : [];
+        } catch (e) {
+          images = [];
+        }
 
         map.get(r.order_id).items.push({
           product_name: r.product_name,
@@ -462,13 +707,16 @@ export async function View_Orders_ByUser(req, res) {
     }
 
     return res.status(200).json([...map.values()]);
+
   } catch (err) {
     console.error("Error loading orders by user:", err);
     return res.status(500).json({ message: "Error loading orders" });
   }
 }
 
-
+// ==========================
+// ACCEPT ORDER (Admin)
+// ==========================
 export async function Accept_Order(req, res) {
   let connection;
 
@@ -476,29 +724,36 @@ export async function Accept_Order(req, res) {
     const user = req.user;
 
     if (!user || !user.userid) {
-      return res.status(401).json({ message: "Unauthorized: user not found in token" });
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
     }
 
     const admin = await isAdmin(user.userid);
     if (!admin) {
-      return res.status(403).json({ message: "Only admin can accept orders" });
+      return res.status(403).json({ 
+        message: "Only admin can accept orders" 
+      });
     }
 
-    // 👉 Safely parse order id
-    const rawId = req.params.order_id;
-    const orderId = Number(rawId);
+    const { order_id } = req.params;
 
-    if (!orderId || Number.isNaN(orderId)) {
-      console.error("Accept_Order invalid order_id:", rawId);
-      return res.status(400).json({ message: "Valid Order ID is required" });
+    // Validate order_id
+    if (!order_id) {
+      return res.status(400).json({ message: "Order ID is required" });
+    }
+
+    if (!validateOrderId(order_id)) {
+      return res.status(400).json({ 
+        message: "Invalid Order ID. Must be a positive integer" 
+      });
     }
 
     connection = await pool.getConnection();
 
-    // 4) check order exists
     const [rows] = await connection.query(
       "SELECT status FROM orders WHERE order_id = ?",
-      [orderId]
+      [order_id]
     );
 
     if (rows.length === 0) {
@@ -506,6 +761,24 @@ export async function Accept_Order(req, res) {
     }
 
     const currentStatus = rows[0].status;
+
+    if (currentStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Cannot accept a cancelled order"
+      });
+    }
+
+    if (currentStatus === "completed") {
+      return res.status(400).json({
+        message: "Order is already completed"
+      });
+    }
+
+    if (currentStatus === "delivering") {
+      return res.status(400).json({
+        message: "Order is already in delivering status"
+      });
+    }
 
     if (currentStatus !== "processing") {
       return res.status(400).json({
@@ -515,7 +788,7 @@ export async function Accept_Order(req, res) {
 
     await connection.query(
       "UPDATE orders SET status = 'delivering' WHERE order_id = ?",
-      [orderId]
+      [order_id]
     );
 
     return res.status(200).json({
@@ -533,12 +806,13 @@ export async function Accept_Order(req, res) {
   }
 }
 
-
+// ==========================
+// COMPLETE ORDER (Delivery)
+// ==========================
 export async function Complete_Order(req, res) {
   let connection;
 
   try {
-    // 1) Check token
     const user = req.user;
 
     if (!user || !user.userid) {
@@ -549,7 +823,6 @@ export async function Complete_Order(req, res) {
 
     const userId = user.userid;
 
-    // 2) Check role: only delivery staff can complete orders
     const deliveryPerson = await isDelivery(userId);
     if (!deliveryPerson) {
       return res.status(403).json({
@@ -557,30 +830,49 @@ export async function Complete_Order(req, res) {
       });
     }
 
-    // 3) Get order ID
     const { order_id } = req.params;
 
+    // Validate order_id
     if (!order_id) {
-      return res.status(400).json({
-        message: "Order ID is required"
+      return res.status(400).json({ message: "Order ID is required" });
+    }
+
+    if (!validateOrderId(order_id)) {
+      return res.status(400).json({ 
+        message: "Invalid Order ID. Must be a positive integer" 
       });
     }
 
     connection = await pool.getConnection();
 
-    // 4) Check order exists and get current status
     const [rows] = await connection.query(
       "SELECT status FROM orders WHERE order_id = ?",
       [order_id]
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({
-        message: "Order not found"
-      });
+      return res.status(404).json({ message: "Order not found" });
     }
 
     const currentStatus = rows[0].status;
+
+    if (currentStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Cannot complete a cancelled order"
+      });
+    }
+
+    if (currentStatus === "completed") {
+      return res.status(400).json({
+        message: "Order is already completed"
+      });
+    }
+
+    if (currentStatus === "processing") {
+      return res.status(400).json({
+        message: "Order must be accepted by admin first"
+      });
+    }
 
     if (currentStatus !== "delivering") {
       return res.status(400).json({
@@ -588,7 +880,6 @@ export async function Complete_Order(req, res) {
       });
     }
 
-    // 5) Update order status to completed
     await connection.query(
       "UPDATE orders SET status = 'completed' WHERE order_id = ?",
       [order_id]
@@ -599,6 +890,7 @@ export async function Complete_Order(req, res) {
     });
 
   } catch (error) {
+    console.error("Error completing order:", error);
     return res.status(500).json({
       message: "Error completing order",
       error: error.message
@@ -608,16 +900,25 @@ export async function Complete_Order(req, res) {
   }
 }
 
-
-
+// ==========================
+// VIEW DELIVERY ORDERS
+// ==========================
 export async function View_Delivery_Orders(req, res) {
   try {
-   
+    const user = req.user;
 
-    // If you added delivery role:
-    // if (user.role !== 'delivery') {
-    //   return res.status(403).json({ message: "Only delivery staff can view these orders" });
-    // }
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
+    const deliveryPerson = await isDelivery(user.userid);
+    if (!deliveryPerson) {
+      return res.status(403).json({ 
+        message: "Only delivery staff can view delivery orders" 
+      });
+    }
 
     const sql = `
       SELECT
@@ -665,7 +966,12 @@ export async function View_Delivery_Orders(req, res) {
       }
 
       if (r.order_item_id) {
-        const images = r.images ? JSON.parse(r.images) : [];
+        let images = [];
+        try {
+          images = r.images ? JSON.parse(r.images) : [];
+        } catch (e) {
+          images = [];
+        }
 
         map.get(r.order_id).items.push({
           product_name: r.product_name,
@@ -679,12 +985,16 @@ export async function View_Delivery_Orders(req, res) {
     }
 
     return res.status(200).json([...map.values()]);
+
   } catch (err) {
     console.error("Error loading delivery orders:", err);
     return res.status(500).json({ message: "Error loading delivery orders" });
   }
 }
 
+// ==========================
+// CANCEL ORDER (Customer)
+// ==========================
 export async function Cancel_Order(req, res) {
   let connection;
 
@@ -708,13 +1018,19 @@ export async function Cancel_Order(req, res) {
 
     const { order_id } = req.params;
 
+    // Validate order_id
     if (!order_id) {
-      return res.status(400).json({
-        message: "Order ID is required"
+      return res.status(400).json({ message: "Order ID is required" });
+    }
+
+    if (!validateOrderId(order_id)) {
+      return res.status(400).json({ 
+        message: "Invalid Order ID. Must be a positive integer" 
       });
     }
 
     connection = await pool.getConnection();
+    await connection.beginTransaction();
 
     const [rows] = await connection.query(
       "SELECT user_id, status FROM orders WHERE order_id = ?",
@@ -722,24 +1038,48 @@ export async function Cancel_Order(req, res) {
     );
 
     if (rows.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ message: "Order not found" });
     }
 
     const order = rows[0];
 
     if (order.user_id !== userId) {
+      await connection.rollback();
       return res.status(403).json({
         message: "You can only cancel your own orders"
       });
     }
 
+    if (order.status === "cancelled") {
+      await connection.rollback();
+      return res.status(400).json({
+        message: "Order is already cancelled"
+      });
+    }
+
+    if (order.status === "completed") {
+      await connection.rollback();
+      return res.status(400).json({
+        message: "Cannot cancel a completed order"
+      });
+    }
+
+    if (order.status === "delivering") {
+      await connection.rollback();
+      return res.status(400).json({
+        message: "Cannot cancel an order that is already being delivered"
+      });
+    }
+
     if (order.status !== "processing") {
+      await connection.rollback();
       return res.status(400).json({
         message: "You can cancel only orders that are in 'processing' status"
       });
     }
 
-    // return stock to product_sizes table
+    // Return stock to product_sizes table
     const [items] = await connection.query(
       "SELECT product_id, size_id, quantity FROM order_items WHERE order_id = ?",
       [order_id]
@@ -759,11 +1099,23 @@ export async function Cancel_Order(req, res) {
       [order_id]
     );
 
+    await connection.commit();
+
     return res.status(200).json({
       message: "Order cancelled successfully"
     });
 
   } catch (error) {
+    console.error("Error cancelling order:", error);
+
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackErr) {
+        console.error("Rollback failed:", rollbackErr);
+      }
+    }
+
     return res.status(500).json({
       message: "Error cancelling order",
       error: error.message
@@ -773,9 +1125,26 @@ export async function Cancel_Order(req, res) {
   }
 }
 
-
+// ==========================
+// TOTAL ORDER COUNT
+// ==========================
 export async function Total_Order_Count(req, res) {
   try {
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
+    const admin = await isAdmin(user.userid);
+    if (!admin) {
+      return res.status(403).json({ 
+        message: "Only admin can view order statistics" 
+      });
+    }
+
     const [rows] = await pool.query(`
       SELECT COUNT(*) AS total_orders
       FROM orders
@@ -794,10 +1163,26 @@ export async function Total_Order_Count(req, res) {
   }
 }
 
-
-
+// ==========================
+// PROCESSING ORDER COUNT
+// ==========================
 export async function Processing_Order_Count(req, res) {
   try {
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
+    const admin = await isAdmin(user.userid);
+    if (!admin) {
+      return res.status(403).json({ 
+        message: "Only admin can view order statistics" 
+      });
+    }
+
     const [rows] = await pool.query(`
       SELECT COUNT(*) AS processing_orders
       FROM orders
@@ -817,8 +1202,26 @@ export async function Processing_Order_Count(req, res) {
   }
 }
 
+// ==========================
+// RECENT FOUR ORDERS
+// ==========================
 export async function Recent_Four_Orders(req, res) {
   try {
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
+    const admin = await isAdmin(user.userid);
+    if (!admin) {
+      return res.status(403).json({ 
+        message: "Only admin can view recent orders" 
+      });
+    }
+
     const [rows] = await pool.query(`
       SELECT 
         o.order_id,
@@ -828,13 +1231,11 @@ export async function Recent_Four_Orders(req, res) {
         u.firstname,
         u.lastname
       FROM orders o
-      LEFT JOIN users u
-        ON o.user_id = u.userid
+      LEFT JOIN users u ON o.user_id = u.userid
       ORDER BY o.order_date DESC, o.order_id DESC
       LIMIT 4
     `);
 
-    // Format response (optional clean structure)
     const data = rows.map(r => ({
       order_id: r.order_id,
       firstname: r.firstname || null,
@@ -855,30 +1256,48 @@ export async function Recent_Four_Orders(req, res) {
   }
 }
 
-
+// ==========================
+// GET USER ORDER STATS
+// ==========================
 export async function Get_User_Order_Stats(req, res) {
   try {
     const { user_id } = req.params;
 
+    // Validate user_id
     if (!user_id) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // 1) COUNT ORDERS BY STATUS
+    if (!validateUserId(user_id)) {
+      return res.status(400).json({ 
+        message: "Invalid User ID. Must be a positive integer" 
+      });
+    }
+
+    // Check if user exists
+    const [userCheck] = await pool.query(
+      "SELECT userid FROM users WHERE userid = ?",
+      [user_id]
+    );
+
+    if (userCheck.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const [countRows] = await pool.query(
       `
       SELECT
         COUNT(*) AS total_orders,
         SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing_orders,
         SUM(CASE WHEN status = 'delivering' THEN 1 ELSE 0 END) AS delivering_orders,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders
       FROM orders
       WHERE user_id = ?
       `,
       [user_id]
     );
 
-    // 2) GET RECENT 4 ORDERS FOR THIS USER
     const [recentRows] = await pool.query(
       `
       SELECT 
@@ -912,9 +1331,11 @@ export async function Get_User_Order_Stats(req, res) {
         processing_orders: countRows[0].processing_orders || 0,
         delivering_orders: countRows[0].delivering_orders || 0,
         completed_orders: countRows[0].completed_orders || 0,
+        cancelled_orders: countRows[0].cancelled_orders || 0,
       },
       recent_orders,
     });
+
   } catch (error) {
     console.error("Error fetching user order stats:", error);
     return res.status(500).json({
@@ -924,18 +1345,28 @@ export async function Get_User_Order_Stats(req, res) {
   }
 }
 
-
+// ==========================
+// GET ORDER SUMMARY
+// ==========================
 export async function Get_Order_Summary(req, res) {
   try {
-    // Count delivering & completed
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
     const [countRows] = await pool.query(`
       SELECT 
         SUM(status = 'delivering') AS delivering_count,
-        SUM(status = 'completed') AS completed_count
+        SUM(status = 'completed') AS completed_count,
+        SUM(status = 'processing') AS processing_count,
+        SUM(status = 'cancelled') AS cancelled_count
       FROM orders
     `);
 
-    // Get recent last 4 delivered or completed
     const [recentRows] = await pool.query(`
       SELECT 
         order_id,
@@ -949,7 +1380,6 @@ export async function Get_Order_Summary(req, res) {
       LIMIT 4
     `);
 
-    // Format customer name → firstname + lastname
     const recentOrders = recentRows.map(row => {
       const parts = row.customer_name?.split(" ") || [];
       return {
@@ -962,10 +1392,11 @@ export async function Get_Order_Summary(req, res) {
       };
     });
 
-    // Send combined response
     return res.status(200).json({
-      delivering_count: countRows[0].delivering_count,
-      completed_count: countRows[0].completed_count,
+      delivering_count: countRows[0].delivering_count || 0,
+      completed_count: countRows[0].completed_count || 0,
+      processing_count: countRows[0].processing_count || 0,
+      cancelled_count: countRows[0].cancelled_count || 0,
       recent_orders: recentOrders
     });
 
@@ -978,9 +1409,19 @@ export async function Get_Order_Summary(req, res) {
   }
 }
 
-
+// ==========================
+// VIEW COMPLETED ORDERS
+// ==========================
 export async function View_Completed_Orders(req, res) {
   try {
+    const user = req.user;
+
+    if (!user || !user.userid) {
+      return res.status(401).json({ 
+        message: "Unauthorized: user not found in token" 
+      });
+    }
+
     const sql = `
       SELECT
         o.order_id,
@@ -991,14 +1432,12 @@ export async function View_Completed_Orders(req, res) {
         o.status,
         o.total,
         o.order_date,
-        
         oi.order_item_id,
         oi.product_id,
         oi.product_name,
         oi.price,
         oi.quantity,
         oi.line_total,
-        
         ps.size_value,
         p.images
       FROM orders o
@@ -1029,7 +1468,12 @@ export async function View_Completed_Orders(req, res) {
       }
 
       if (r.order_item_id) {
-        const images = r.images ? JSON.parse(r.images) : [];
+        let images = [];
+        try {
+          images = r.images ? JSON.parse(r.images) : [];
+        } catch (e) {
+          images = [];
+        }
 
         map.get(r.order_id).items.push({
           product_id: r.product_id,
@@ -1044,6 +1488,7 @@ export async function View_Completed_Orders(req, res) {
     }
 
     return res.status(200).json([...map.values()]);
+
   } catch (err) {
     console.error("Error loading completed orders:", err);
     return res.status(500).json({ message: "Error loading completed orders" });

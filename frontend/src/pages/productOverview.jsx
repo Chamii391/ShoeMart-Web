@@ -11,6 +11,7 @@ import { addToCart } from "../utils/cart";
 import Header from "../components/header";
 import Footer from "../components/footer";
 import ProductCard from "../components/productCart";
+import Snowfall from "../components/snow";
 
 export default function ProductOverview() {
     const { id } = useParams();
@@ -225,6 +226,7 @@ export default function ProductOverview() {
     return (
         <div className="min-h-screen bg-white">
             <Header />
+            <Snowfall flakes={60}/>
 
             {/* Breadcrumb */}
             <div className="bg-black text-white">
